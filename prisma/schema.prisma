@@ -1,0 +1,47 @@
+datasource db {
+  provider = "mysql"
+  url      = env("mysql://root:Vecchioneto29@localhost:3306/banco") // negocio pro banco de dados, n sei se ta certo
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Usuario {
+  id             Int          @id @default(autoincrement()) // ve se é usuario unico
+  nome           String       // Nome do usuário
+  email          String       @unique // Email único para o login
+  telefone       String       // telefone do usuario
+  senha          String       // a senha dele
+  criadoEm       DateTime     @default(now()) // quando ele criou a conta
+  atualizadoEm   DateTime     @updatedAt // ultima alteração da conta
+  modalidades    Modalidade[] @relation("ModalidadesUsuario") // Relacionamento do andre para as modalidades
+  perfil         PerfilUsuario? // Relacionamento do andre com o perfil
+  sessions       Session[]    @relation("UserSessions") // Relacionamento do andre com as sessões
+}
+
+model Modalidade {
+  id      Int        @id @default(autoincrement()) // Identificador único da modalidade
+  nome    String     @unique // Nome da modalidade (Vôlei, Basquete, Futebol, Tênis de Mesa)
+  usuarios Usuario[] @relation("ModalidadesUsuario") // Relacionamento do andre  com usuários
+}
+
+model PerfilUsuario {
+  id         Int     @id @default(autoincrement()) // Identificador único do perfil
+  rua        String  // Rua dele
+  bairro     String  // Bairro dele
+  estado     String  // Estado dele
+  cep        String  // CEP dele
+  usuarioId  Int     @unique // Relacionamento do andre com o usuário
+  usuario    Usuario @relation(fields: [usuarioId], references: [id]) // Relacionamento do andre com a tabela de usuários
+}
+
+model Session {
+  id        Int      @id @default(autoincrement()) // Identificador único da sessão
+  token     String   @unique // Token único da sessão
+  createdAt DateTime @default(now()) // Data de criação da sessão
+  userId    Int      // Chave estrangeira para o usuário
+  user      Usuario  @relation("UserSessions", fields: [userId], references: [id]) // Relacionamento do andre com o usuário
+
+  @@unique([userId, token]) // Garantir que cada usuário tenha apenas um token por vez
+}

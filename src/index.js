@@ -8,8 +8,8 @@ async function main() {
     data: {
       name: 'João Silva',
       email: 'joao.silva@example.com',
-      phone: '123456789',
-      password: 'senha123',  // Lembre-se de usar hashing para segurança
+      telefone: '123456789',
+      pass:'senha123',  // Lembre-se de usar hashing para segurança
     },
   });
   console.log('Usuário criado:', newUser);

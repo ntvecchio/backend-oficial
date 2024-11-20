@@ -1,6 +1,6 @@
 datasource db {
   provider = "mysql"
-  url      = env("mysql://root:Vecchioneto29@localhost:3306/banco") // negocio pro banco de dados, n sei se ta certo
+  url      = env("DATABASE_URL") 
 }
 
 generator client {
@@ -8,16 +8,17 @@ generator client {
 }
 
 model Usuario {
-  id             Int          @id @default(autoincrement()) // ve se é usuario unico
+  id             Int          @id @default(autoincrement()) // Ve se é usuario único
   nome           String       // Nome do usuário
   email          String       @unique // Email único para o login
-  telefone       String       // telefone do usuario
-  senha          String       // a senha dele
-  criadoEm       DateTime     @default(now()) // quando ele criou a conta
-  atualizadoEm   DateTime     @updatedAt // ultima alteração da conta
-  modalidades    Modalidade[] @relation("ModalidadesUsuario") // Relacionamento do andre para as modalidades
-  perfil         PerfilUsuario? // Relacionamento do andre com o perfil
-  sessions       Session[]    @relation("UserSessions") // Relacionamento do andre com as sessões
+  telefone       String       // Telefone do usuário
+  senha          String       // A senha dele
+  public_id      String       @unique @default(uuid()) // Campo public_id gerado automaticamente
+  criadoEm       DateTime     @default(now()) // Quando ele criou a conta
+  atualizadoEm   DateTime     @updatedAt // Última alteração da conta
+  modalidades    Modalidade[] @relation("ModalidadesUsuario") // Relacionamento do usuário com as modalidades
+  perfil         PerfilUsuario? // Relacionamento do usuário com o perfil
+  sessions       Session[]    @relation("UserSessions") // Relacionamento do usuário com as sessões
 }
 
 model Modalidade {

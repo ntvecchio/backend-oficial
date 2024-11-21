@@ -39,7 +39,7 @@ model PerfilUsuario {
 
 model Session {
   id        Int      @id @default(autoincrement()) // Identificador único da sessão
-  token     String   @unique // Token único da sessão
+  token     String   @db.VarChar(500) // Alteração: Definindo como VarChar com tamanho 255
   createdAt DateTime @default(now()) // Data de criação da sessão
   userId    Int      // Chave estrangeira para o usuário
   user      Usuario  @relation("UserSessions", fields: [userId], references: [id]) // Relacionamento do andre com o usuário

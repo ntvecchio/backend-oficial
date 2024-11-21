@@ -25,3 +25,8 @@ app.use('/', authRouter); // Conecte o roteador ao servidor principal
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ error: "Erro interno no servidor." });
+});

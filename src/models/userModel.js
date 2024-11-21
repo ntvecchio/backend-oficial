@@ -48,10 +48,20 @@ export const userValidateToCreate = (usuario) => {
 
 // Validação para login
 export const userValidateToLogin = (usuario) => {
-  const loginSchema = usuarioSchema.pick({ email: true, senha: true });
+  const loginSchema = z.object({
+    email: z.string({
+      invalid_type_error: "O email deve ser uma string",
+      required_error: "O email é obrigatório",
+    }).email({ message: "Email inválido" }),
+
+    senha: z.string({
+      invalid_type_error: "A senha deve ser uma string",
+      required_error: "A senha é obrigatória",
+    }).min(6, { message: "A senha deve ter ao menos 6 caracteres" })
+  });
+
   return loginSchema.safeParse(usuario);
 };
-
 // Buscar por ID
 export const getById = async (id) => {
   const user = await prisma.usuario.findUnique({

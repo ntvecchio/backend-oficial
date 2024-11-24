@@ -1,70 +1,29 @@
-import { getSessionByToken, updateToken } from "../../models/sessionModel.js"
-import jwt from 'jsonwebtoken'
-import { SECRET_KEY } from "../../config.js"
-import { getById } from "../../models/userModel.js"
+import jwt from 'jsonwebtoken'; // Para gerar e verificar JWT
+import { SECRET_KEY } from '../../config.js'; // Segredo para assinar os tokens
 
-const refreshToken = async (req, res, next) => {
-    try {
-        const authorization = req.headers.authorization;
-
-        if (!authorization) {
-            return res.status(403).json({
-                error: "Não Autorizado, AccessToken não informado!",
-            });
-        }
-
-        // Extrai o token da header
-        const accessToken = authorization.split(' ')[1];
-
-        // Busca pela sessão no banco de dados usando o token
-        const session = await getSessionByToken(accessToken);
-
-        if (!session) {
-            return res.status(403).json({
-                error: "Não Autorizado, AccessToken não encontrado!",
-            });
-        }
-
-        // Busca o usuário associado à sessão
-        const userLogged = await getById(session.user_id);
-
-        // Verifica se o usuário foi encontrado
-        if (!userLogged) {
-            return res.status(403).json({
-                error: "Usuário não encontrado!",
-            });
-        }
-
-        // Gera um novo token de acesso
-        const newToken = jwt.sign(
-            { public_id: userLogged.public_id, name: userLogged.name },
-            SECRET_KEY,
-            { expiresIn: 60 * 5 } // O token irá expirar em 5 minutos
-        );
-
-        // Atualiza o token no banco de dados
-        const result = await updateToken(accessToken, newToken);
-
-        if (!result) {
-            return res.status(403).json({
-                error: "Erro ao atualizar o token!",
-            });
-        }
-
-        // Retorna o novo token para o cliente
-        return res.json({
-            success: "Token atualizado com sucesso!",
-            accessToken: newToken,
-            user: {
-                public_id: userLogged.public_id,
-                name: userLogged.name,
-                avatar: userLogged.avatar,
-                email: userLogged.email,
-            },
-        });
-    } catch (error) {
-        next(error);
+const refreshTokenController = async (req, res) => {
+  const { token } = req.body;  // Pegando o refresh token enviado no corpo da requisição
+  
+  try {
+    // Lógica de verificação e renovação do token aqui
+    if (!token) {
+      return res.status(400).json({ error: 'Token de refresh não fornecido' });
     }
+    
+    // Validar o refresh token
+    const decoded = jwt.verify(token, SECRET_KEY); // Verificação do refresh token
+    
+    // Gerar um novo access token com base nas informações do refresh token
+    const newAccessToken = jwt.sign({ public_id: decoded.public_id }, SECRET_KEY, { expiresIn: '1h' });
+    
+    // Enviar o novo token para o cliente
+    return res.status(200).json({
+      accessToken: newAccessToken,
+    });
+  } catch (error) {
+    console.error('Erro ao renovar o token:', error);
+    return res.status(500).json({ error: 'Erro ao renovar o token de acesso' });
+  }
 };
 
-export default refreshToken;
+export default refreshTokenController;

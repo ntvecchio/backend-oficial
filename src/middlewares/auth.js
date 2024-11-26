@@ -15,9 +15,8 @@ export const auth = (req, res, next) => {
     try {
         const result = jwt.verify(accessToken, SECRET_KEY);
 
-        // Adiciona dados do usuário ao req.userLogged
         req.userLogged = {
-            id: result.id, // Certifique-se de que o payload do token contém 'id'
+            id: result.id, 
             public_id: result.public_id,
             name: result.name,
         };

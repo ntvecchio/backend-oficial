@@ -6,14 +6,14 @@ import { SECRET_KEY } from "../../config.js";
 
 const login = async (req, res, next) => {
   try {
-    // Verifique se a chave secreta está configurada
+  
     if (!SECRET_KEY) {
       throw new Error("SECRET_KEY não configurada. Verifique o arquivo de configuração.");
     }
 
     console.log("Início do login, body recebido:", req.body);
     
-    // Validação do login - Verifica se os dados enviados são válidos
+   
     const loginValidated = userValidateToLogin(req.body);
     if (loginValidated?.error) {
       return res.status(400).json({
@@ -22,11 +22,10 @@ const login = async (req, res, next) => {
       });
     }
 
-    console.log("Validação do login:", loginValidated); // Após a validação
+    console.log("Validação do login:", loginValidated); 
 
-    const { email, senha } = loginValidated.data;  // Dados validados (email e senha)
+    const { email, senha } = loginValidated.data;  
 
-    // Buscar o usuário no banco de dados usando o email fornecido
     const user = await getByEmail(email);
     if (!user) {
       return res.status(401).json({
@@ -34,7 +33,7 @@ const login = async (req, res, next) => {
       });
     }
 
-    // Comparar a senha fornecida com a senha criptografada no banco de dados
+  
     const passIsValid = await bcrypt.compare(senha, user.senha);
     if (!passIsValid) {
       return res.status(401).json({
@@ -42,7 +41,6 @@ const login = async (req, res, next) => {
       });
     }
 
-    // Gerar o token JWT
     const payload = {
         name: user.name,
         email: user.email,
@@ -52,18 +50,17 @@ const login = async (req, res, next) => {
       await AsyncStorage.setItem('accessToken', token);
       console.log("Token armazenado no AsyncStorage:", token);
 
-    // Criar a sessão do usuário
     await createSession(user.id, token);
 
-    // Retornar uma resposta de sucesso com o token e os dados do usuário
+    
     return res.status(200).json({
       success: "Login realizado com sucesso!",
-      accessToken: token,  // Token JWT
+      accessToken: token,  
       user: {
         public_id: user.public_id,
-        name: user.nome,   // Nome do usuário
-        avatar: user.avatar || null,  // Avatar, caso exista
-        email: user.email,  // Email do usuário
+        name: user.nome,   
+        avatar: user.avatar || null,  
+        email: user.email,  
       },
     });
   } catch (error) {
@@ -74,7 +71,7 @@ const login = async (req, res, next) => {
         details: error.message,
       });
     }
-    next(error); // Passa o erro para o middleware de tratamento de erro
+    next(error); 
   }
 };
 

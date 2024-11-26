@@ -1,27 +1,26 @@
-// backend/index.js
+
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  // Criando um novo usuário
   const newUser = await prisma.user.create({
     data: {
       name: 'João Silva',
       email: 'joao.silva@example.com',
       telefone: '123456789',
-      pass:'senha123',  // Lembre-se de usar hashing para segurança
+      pass:'senha123',  
     },
   });
   console.log('Usuário criado:', newUser);
 
-  // Criando um ponto esportivo
+  
   const sportPoint = await prisma.sportPoint.create({
     data: {
       name: 'Campo de Futebol',
       description: 'Campo para jogos de futebol',
       location: 'Rua da Alegria, 100',
       sport: 'Futebol',
-      userId: newUser.id,  // Relacionando com o usuário criado
+      userId: newUser.id,  
     },
   });
   console.log('Ponto esportivo criado:', sportPoint);

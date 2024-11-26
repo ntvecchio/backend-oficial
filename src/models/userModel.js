@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 const prisma = new PrismaClient();
 
-// Schema de validação para o cadastro
+
 const usuarioSchema = z.object({
   id: z.number({
     invalid_type_error: "O id deve ser um valor numérico",

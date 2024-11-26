@@ -1,13 +1,12 @@
-// src/routes/modalityRouter.js
+
 import express from 'express';
-import prisma from '../prisma.js'; // Ajuste para o caminho correto
+import prisma from '../prisma.js'; 
 
 const router = express.Router();
 
-// Rota para retornar todas as modalidades
 router.get('/modalidades', async (req, res) => {
   try {
-    const modalidades = await prisma.modalidade.findMany(); // Recupera as modalidades do banco
+    const modalidades = await prisma.modalidade.findMany();
     res.json(modalidades);
   } catch (error) {
     console.error('Erro ao buscar modalidades:', error);

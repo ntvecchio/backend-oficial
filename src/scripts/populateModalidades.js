@@ -1,6 +1,6 @@
-import { PrismaClient } from '@prisma/client'; // Importando o Prisma Client correto
+import { PrismaClient } from '@prisma/client'; 
 
-const prisma = new PrismaClient(); // Inicializa a instância do Prisma
+const prisma = new PrismaClient(); 
 
 const adicionarModalidades = async () => {
   const modalidades = ['Vôlei', 'Basquete', 'Futebol', 'Tênis de Mesa'];
@@ -17,5 +17,5 @@ const adicionarModalidades = async () => {
 adicionarModalidades().catch((error) => {
   console.error('Erro ao adicionar modalidades:', error);
 }).finally(async () => {
-  await prisma.$disconnect(); // Fecha a conexão com o banco após a execução
+  await prisma.$disconnect(); 
 });

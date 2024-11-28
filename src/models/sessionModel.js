@@ -5,10 +5,10 @@ const prisma = new PrismaClient();
 
 export const createSession = async (userId, token) => {
     try {
-        // Alteração na busca da sessão: use o campo `userId` ou crie uma combinação de `userId` e `token` caso necessário
+        // Busca a sessão com a combinação userId e token
         const existingSession = await prisma.session.findUnique({
             where: {
-                userId_token: { userId, token }, // Usando uma chave composta (userId e token)
+                userId_token: { userId, token }, // Chave composta para garantir que a combinação seja única
             },
         });
 
@@ -28,6 +28,7 @@ export const createSession = async (userId, token) => {
         throw new Error("Erro ao criar a sessão.");
     }
 };
+
 
 export const deleteByToken = async (token) => {
     try {

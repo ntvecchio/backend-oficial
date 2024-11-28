@@ -1,5 +1,9 @@
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { SECRET_KEY } from "../config.js";  // Certifique-se de que o caminho está correto
+
+
 
 const prisma = new PrismaClient();
 
@@ -30,26 +34,39 @@ export const createSession = async (userId, token) => {
 };
 
 
-export const deleteByToken = async (token) => {
+const deleteByToken = async (userId, token) => {
     try {
-        const session = await prisma.session.findUnique({
-            where: { token }
-        });
-
-        if (!session) {
-            throw new Error("Sessão não encontrada.");
-        }
-
-        const result = await prisma.session.delete({
-            where: { token }
-        });
-
-        return { success: true, message: "Sessão excluída com sucesso." };
+      // Verificando se existe uma sessão com o token e userId
+      const session = await prisma.session.findUnique({
+        where: {
+          userId_token: { userId: userId, token: token },
+        },
+      });
+  
+      // Caso não encontre a sessão, retorna erro
+      if (!session) {
+        console.log("Sessão não encontrada.");
+        return false; // Não realiza a exclusão
+      }
+  
+      // Deletando a sessão com o token
+      await prisma.session.delete({
+        where: {
+          userId_token: { userId: userId, token: token },
+        },
+      });
+  
+      console.log("Sessão excluída com sucesso.");
+      return true; // Sessão deletada com sucesso
     } catch (error) {
-        console.error("Erro ao excluir sessão:", error);
-        throw new Error("Erro ao excluir a sessão.");
+      console.error("Erro ao excluir a sessão:", error);
+      return false; // Em caso de erro
     }
-};
+  };
+  
+  
+  export { deleteByToken };
+  
 
 export const getSessionByToken = async (token) => {
     try {

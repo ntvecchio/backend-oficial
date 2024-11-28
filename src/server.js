@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import modalityRouter from './routes/modalityRouter.js';
 import authRouter from './routes/authRouter.js'; 
+import dotenv from 'dotenv';
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -15,6 +17,8 @@ const corsOptions = {
 app.use(cors(corsOptions)); 
 app.use(express.json()); 
 app.use(modalityRouter);
+
+dotenv.config();
 
 
 app.use('/', authRouter); 

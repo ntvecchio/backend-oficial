@@ -57,10 +57,12 @@ const login = async (req, res, next) => {
       name: user.nome,
       email: user.email,
     };
-
-    const token = jwt.sign(payload, SECRET_KEY, { expiresIn: "1h" });
-    console.log("Token gerado:", token);
-
+    
+    const accessToken = jwt.sign(payload, process.env.SECRET_KEY, { expiresIn: '1h' });
+    console.log("Token gerado:", accessToken); // Verifique o token gerado
+    
+    // Exibir o token gerado no console
+    console.log("Token gerado:", accessToken); // Use accessToken, pois é o nome da variável
     // Criar sessão no banco
     const sessionCreated = await createSession(user.id, token);
     if (!sessionCreated) {
@@ -73,7 +75,7 @@ const login = async (req, res, next) => {
     // Retornar sucesso
     return res.status(200).json({
       success: "Login realizado com sucesso!",
-      accessToken: token,
+      accessToken: token,  // 'accessToken' é o nome do token enviado ao frontend
       user: {
         public_id: user.public_id,
         name: user.nome,
@@ -83,7 +85,7 @@ const login = async (req, res, next) => {
     });
   } catch (error) {
     console.error("Erro ao processar o login:", error);
-    next(error);
+    next(error);  // Passa o erro para o middleware de tratamento
   }
 };
 

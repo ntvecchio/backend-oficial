@@ -1,7 +1,7 @@
 
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-
+import dotenv from 'dotenv';
 async function main() {
   const password = 'senha123'; // Senha fornecida
 
@@ -29,6 +29,8 @@ async function main() {
   });
   console.log('Ponto esportivo criado:', sportPoint);
 }
+
+dotenv.config();
 
 main()
   .catch((e) => {

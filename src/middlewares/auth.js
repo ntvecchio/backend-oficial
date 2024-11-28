@@ -14,16 +14,17 @@ export const auth = (req, res, next) => {
 
     try {
         const result = jwt.verify(accessToken, SECRET_KEY);
-
+        console.log("Token verificado com sucesso:", result);  // Verifique o conteúdo de result
         req.userLogged = {
-            id: result.id, 
+            id: result.id,
             public_id: result.public_id,
             name: result.name,
         };
     } catch (error) {
+        console.error("Erro ao verificar token:", error);
         if (error?.name === 'TokenExpiredError')
             return res.status(401).json({ error: 'Não Autorizado, AccessToken Expirado!', errorType: 'tokenExpired' });
-
+    
         if (error?.name === 'JsonWebTokenError')
             return res.status(403).json({ error: 'Não Autorizado, AccessToken Inválido!' });
     }

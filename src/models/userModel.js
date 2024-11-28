@@ -1,87 +1,100 @@
-import { PrismaClient } from '@prisma/client';
-import { z } from 'zod';
+import { PrismaClient } from "@prisma/client";
+import { z } from "zod";
+import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
-
+// Schema para validação
 const usuarioSchema = z.object({
-  id: z.number({
-    invalid_type_error: "O id deve ser um valor numérico",
-    required_error: "O id é obrigatório",
-  }).positive({ message: "O id deve ser um número positivo maior que 0" }),
-  nome: z.string({
-    invalid_type_error: "O nome deve ser uma string",
-    required_error: "O nome é obrigatório",
-  }).min(3, { message: "O nome deve ter ao menos 3 caracteres" })
-    .max(100, { message: "O nome deve ter no máximo 100 caracteres" }),
-  email: z.string({
-    invalid_type_error: "O email deve ser uma string",
-    required_error: "O email é obrigatório",
-  }).email({ message: "Email inválido" })
-    .max(200, { message: "O email deve ter no máximo 200 caracteres" }),
-  telefone: z.string({
-    invalid_type_error: "O telefone deve ser uma string",
-    required_error: "O telefone é obrigatório",
-  }).min(10, { message: "O telefone deve ter ao menos 10 dígitos" })
-    .max(15, { message: "O telefone deve ter no máximo 15 dígitos" }),
-  senha: z.string({
-    invalid_type_error: "A senha deve ser uma string",
-    required_error: "A senha é obrigatória",
-  }).min(6, { message: "A senha deve ter ao menos 6 caracteres" })
-    .max(500, { message: "A senha deve ter no máximo 500 caracteres" }),
-  confirmarSenha: z.string({
-    invalid_type_error: "A confirmação da senha deve ser uma string",
-    required_error: "A confirmação da senha é obrigatória",
-  }).min(6, { message: "A confirmação da senha deve ter ao menos 6 caracteres" })
-    .max(500, { message: "A confirmação da senha deve ter no máximo 500 caracteres" }),
-  avatar: z.string({
-    invalid_type_error: "O avatar deve ser uma string",
-  }).url({ message: "URL inválida" })
-    .optional(),
+  id: z.number().positive("O id deve ser um número positivo maior que 0").optional(),
+  nome: z.string().min(3, "O nome deve ter ao menos 3 caracteres").max(100, "O nome deve ter no máximo 100 caracteres"),
+  email: z.string().email("Email inválido").max(200, "O email deve ter no máximo 200 caracteres"),
+  telefone: z.string().min(10, "O telefone deve ter ao menos 10 dígitos").max(15, "O telefone deve ter no máximo 15 dígitos"),
+  senha: z.string().min(6, "A senha deve ter ao menos 6 caracteres").max(500, "A senha deve ter no máximo 500 caracteres"),
+  confirmarSenha: z.string().min(6, "A confirmação da senha deve ter ao menos 6 caracteres").max(500, "A confirmação da senha deve ter no máximo 500 caracteres"),
+  avatar: z.string().url("URL inválida").optional(),
 });
 
-// Validação para criar usuário
+// Função para validar o cadastro
 export const userValidateToCreate = (usuario) => {
-  const partialSchema = usuarioSchema.partial({ id: true });
-  return partialSchema.safeParse(usuario);
+  const partialSchema = usuarioSchema.omit({ id: true });
+  const validationResult = partialSchema.safeParse(usuario);
+
+  // Verificando se as senhas coincidem
+  if (validationResult.success && usuario.senha !== usuario.confirmarSenha) {
+    return {
+      success: false,
+      error: {
+        message: "As senhas não coincidem.",
+      },
+    };
+  }
+
+  return validationResult;
 };
 
-// Validação para login
+// Função para buscar usuário por ID
+export const getById = async (id) => {
+  return await prisma.usuario.findUnique({
+    where: { id },
+  });
+};
+
+// Função para buscar usuário por email
+export const getByEmail = async (email) => {
+  console.log("Buscando usuário com email:", email); // Verificar qual email está sendo enviado
+  try {
+    // Usar prisma.usuario para acessar o banco de dados
+    const user = await prisma.usuario.findUnique({
+      where: { email }, // Verifica pelo campo 'email'
+    });
+    console.log("Usuário encontrado:", user); // Verificar o que foi retornado
+    return user;
+  } catch (error) {
+    console.error("Erro ao buscar usuário:", error);
+    throw new Error("Erro ao buscar usuário");
+  }
+};
+
+// Função para cadastro do usuário
+export const signUp = async (usuario) => {
+  try {
+    // Verificar se o email já está registrado
+    const existingUser = await prisma.usuario.findUnique({
+      where: { email: usuario.email },
+    });
+
+    if (existingUser) {
+      throw new Error("Já existe um usuário com esse email.");
+    }
+
+    // Criptografando a senha
+    const hashedPassword = await bcrypt.hash(usuario.senha, 10);
+
+    // Removendo confirmação de senha para não salvar
+    const sanitizedUser = {
+      ...usuario,
+      senha: hashedPassword,
+      confirmarSenha: undefined, // Não guardar confirmação no banco
+    };
+
+    const result = await prisma.usuario.create({
+      data: sanitizedUser,
+    });
+
+    return { success: true, user: result };
+  } catch (error) {
+    console.error("Erro ao criar usuário:", error);
+    throw new Error("Erro ao criar o usuário.");
+  }
+};
+
+// Função para validar login
 export const userValidateToLogin = (usuario) => {
   const loginSchema = z.object({
-    email: z.string({
-      invalid_type_error: "O email deve ser uma string",
-      required_error: "O email é obrigatório",
-    }).email({ message: "Email inválido" }),
-
-    senha: z.string({
-      invalid_type_error: "A senha deve ser uma string",
-      required_error: "A senha é obrigatória",
-    }).min(6, { message: "A senha deve ter ao menos 6 caracteres" })
+    email: z.string().email("Email inválido"),
+    senha: z.string().min(6, "A senha deve ter ao menos 6 caracteres"),
   });
 
   return loginSchema.safeParse(usuario);
-};
-// Buscar por ID
-export const getById = async (id) => {
-  const user = await prisma.usuario.findUnique({
-    where: { id },
-  });
-  return user;
-};
-
-// Buscar por email
-export const getByEmail = async (email) => {
-  const user = await prisma.usuario.findUnique({
-    where: { email },
-  });
-  return user;
-};
-
-// Cadastro de usuário
-export const signUp = async (usuario) => {
-  const result = await prisma.usuario.create({
-    data: usuario,
-  });
-  return result;
 };

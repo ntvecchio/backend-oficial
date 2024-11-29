@@ -15,4 +15,11 @@ router.get('/:id', getByIdController)
 router.put('/:id', updateController)
 router.delete('/:id', removeController)
 
+router.param('id', (req, res, next, id) => {
+    if (!/^\d+$/.test(id)) { // Apenas números permitidos como ID
+      return res.status(400).json({ error: 'ID inválido.' });
+    }
+    next();
+  });
+
 export default router

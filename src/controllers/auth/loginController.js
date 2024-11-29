@@ -32,7 +32,7 @@ const login = async (req, res, next) => {
 
     // Buscar o usuário pelo email
     const user = await getByEmail(email);
-    console.log("Usuário encontrado:", user);  // Agora está aqui, depois da busca
+    console.log("Usuário encontrado:", user);
 
     if (!user) {
       console.warn(`Usuário com email ${email} não encontrado.`);
@@ -57,14 +57,12 @@ const login = async (req, res, next) => {
       name: user.nome,
       email: user.email,
     };
-    
-    const accessToken = jwt.sign(payload, process.env.SECRET_KEY, { expiresIn: '1h' });
-    console.log("Token gerado:", accessToken); // Verifique o token gerado
-    
-    // Exibir o token gerado no console
-    console.log("Token gerado:", accessToken); // Use accessToken, pois é o nome da variável
+
+    const accessToken = jwt.sign(payload, SECRET_KEY, { expiresIn: "1h" });
+    console.log("Token gerado:", accessToken);
+
     // Criar sessão no banco
-    const sessionCreated = await createSession(user.id, token);
+    const sessionCreated = await createSession(user.id, accessToken);
     if (!sessionCreated) {
       console.error("Erro ao criar sessão no banco de dados.");
       return res.status(500).json({
@@ -75,7 +73,7 @@ const login = async (req, res, next) => {
     // Retornar sucesso
     return res.status(200).json({
       success: "Login realizado com sucesso!",
-      accessToken: token,  // 'accessToken' é o nome do token enviado ao frontend
+      accessToken: accessToken, // Corrigido para 'accessToken'
       user: {
         public_id: user.public_id,
         name: user.nome,
@@ -85,8 +83,27 @@ const login = async (req, res, next) => {
     });
   } catch (error) {
     console.error("Erro ao processar o login:", error);
-    next(error);  // Passa o erro para o middleware de tratamento
+    next(error); // Passa o erro para o middleware de tratamento
   }
 };
+
+export const getUserInfo = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) {
+      return res.status(401).json({ error: 'Token não fornecido.' });
+    }
+
+    const decoded = jwt.verify(token, process.env.SECRET_KEY);
+    return res.status(200).json({
+      name: decoded.name,
+      email: decoded.email,
+    });
+  } catch (error) {
+    console.error('Erro no endpoint /getUserInfo:', error);
+    return res.status(401).json({ error: 'Token inválido ou expirado.' });
+  }
+};
+
 
 export default login;

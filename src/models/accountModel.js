@@ -61,6 +61,17 @@ export const deleteAccount = async (id, public_id) => {
 };
 
 export const update = async (account, public_id) => {
+    const existingAccount = await prisma.account.findUnique({
+        where: { id: account.id },
+        include: { user: true }
+    });
+
+    // Verificar se o usuário tem permissão para atualizar essa conta
+    if (!existingAccount || existingAccount.user.public_id !== public_id) {
+        throw new Error("Conta não encontrada ou você não tem permissão para atualizar.");
+    }
+
+    // Atualiza a conta
     const result = await prisma.account.update({
         where: { id: account.id },
         data: account

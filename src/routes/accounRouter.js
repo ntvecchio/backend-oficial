@@ -1,25 +1,21 @@
-import express from 'express'
-import createController from '../controllers/account/createController.js'
-import getByIdController from '../controllers/account/getByIdController.js'
-import listController from '../controllers/account/listController.js'
-import updateController from '../controllers/account/updateController.js'
-import removeController from '../controllers/account/removeController.js'
-import { auth } from '../middlewares/auth.js'
+import express from 'express';
+import createController from '../controllers/account/createController.js';
+import getByIdController from '../controllers/account/getByIdController.js';
+import listController from '../controllers/account/listController.js';
+import updateController from '../controllers/account/updateController.js';
+import removeController from '../controllers/account/removeController.js';
+import { auth } from '../middlewares/auth.js';  // Certifique-se de que o nome do middleware seja 'auth'
 
-const router = express.Router()
+const router = express.Router();
 
-router.use(auth)
-router.post('/', createController)
-router.get('/list', listController)
-router.get('/:id', getByIdController)
-router.put('/:id', updateController)
-router.delete('/:id', removeController)
+// Aplica o middleware de autenticação para todas as rotas
+router.use(auth);
 
-router.param('id', (req, res, next, id) => {
-    if (!/^\d+$/.test(id)) { // Apenas números permitidos como ID
-      return res.status(400).json({ error: 'ID inválido.' });
-    }
-    next();
-  });
+// Rotas
+router.post('/', createController);
+router.get('/list', listController);
+router.get('/:id', getByIdController);
+router.put('/update/:id', updateController); // Usar 'auth' diretamente aqui
+router.delete('/:id', removeController);
 
-export default router
+export default router;

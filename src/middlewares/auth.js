@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import { SECRET_KEY } from '../config.js';
+import updateController from './controllers/account/updateController.js';
 
 export const auth = (req, res, next) => {
     const authorization = req.headers.authorization;
@@ -31,6 +32,7 @@ export const auth = (req, res, next) => {
             public_id: result.public_id,
             name: result.name,
         };
+
     } catch (error) {
         console.error("Erro ao verificar token:", error);
 

@@ -1,102 +1,78 @@
-import { PrismaClient } from '@prisma/client';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import { SECRET_KEY } from "../config.js";  // Certifique-se de que o caminho está correto
-
-
+import { PrismaClient } from "@prisma/client";
+import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
+const SALT_ROUNDS = 10;
 
+// Criar uma nova sessão
 export const createSession = async (userId, token) => {
-    try {
-        // Busca a sessão com a combinação userId e token
-        const existingSession = await prisma.session.findUnique({
-            where: {
-                userId_token: { userId, token }, // Chave composta para garantir que a combinação seja única
-            },
-        });
+  try {
+    const hashedToken = await bcrypt.hash(token, SALT_ROUNDS);
 
-        if (existingSession) {
-            throw new Error("Já existe uma sessão ativa com esse token.");
-        }
+    const result = await prisma.session.create({
+      data: { userId, token: hashedToken },
+    });
 
-        const hashedToken = await bcrypt.hash(token, 10); // Criptografando o token
-
-        const result = await prisma.session.create({
-            data: { userId, token: hashedToken }
-        });
-
-        return { success: true, session: result };
-    } catch (error) {
-        console.error("Erro ao criar sessão:", error);
-        throw new Error("Erro ao criar a sessão.");
-    }
+    return { success: true, session: result };
+  } catch {
+    throw new Error("Erro ao criar a sessão.");
+  }
 };
 
+// Deletar sessão por token
+export const deleteByToken = async (token) => {
+  try {
+    const sessions = await prisma.session.findMany();
+    const sessionToDelete = sessions.find((session) =>
+      bcrypt.compareSync(token, session.token)
+    );
 
-const deleteByToken = async (userId, token) => {
-    try {
-      // Verificando se existe uma sessão com o token e userId
-      const session = await prisma.session.findUnique({
-        where: {
-          userId_token: { userId: userId, token: token },
-        },
-      });
-  
-      // Caso não encontre a sessão, retorna erro
-      if (!session) {
-        console.log("Sessão não encontrada.");
-        return false; // Não realiza a exclusão
-      }
-  
-      // Deletando a sessão com o token
-      await prisma.session.delete({
-        where: {
-          userId_token: { userId: userId, token: token },
-        },
-      });
-  
-      console.log("Sessão excluída com sucesso.");
-      return true; // Sessão deletada com sucesso
-    } catch (error) {
-      console.error("Erro ao excluir a sessão:", error);
-      return false; // Em caso de erro
+    if (!sessionToDelete) {
+      return false;
     }
-  };
-  
-  
-  export { deleteByToken };
-  
 
+    await prisma.session.delete({ where: { id: sessionToDelete.id } });
+    return true;
+  } catch {
+    throw new Error("Erro ao excluir a sessão.");
+  }
+};
+
+// Buscar sessão por token
 export const getSessionByToken = async (token) => {
-    try {
-        const result = await prisma.session.findUnique({
-            where: { token }
-        });
+  try {
+    const sessions = await prisma.session.findMany();
+    const matchingSession = sessions.find((session) =>
+      bcrypt.compareSync(token, session.token)
+    );
 
-        if (!result) {
-            throw new Error("Sessão não encontrada.");
-        }
-
-        return result;
-    } catch (error) {
-        console.error("Erro ao buscar sessão:", error);
-        throw new Error("Erro ao buscar a sessão.");
-    }
+    return matchingSession || null;
+  } catch {
+    throw new Error("Erro ao buscar a sessão.");
+  }
 };
 
+// Atualizar o token
 export const updateToken = async (oldToken, newToken) => {
-    try {
-        const hashedNewToken = await bcrypt.hash(newToken, 10); // Criptografando o novo token
+  try {
+    const sessions = await prisma.session.findMany();
+    const sessionToUpdate = sessions.find((session) =>
+      bcrypt.compareSync(oldToken, session.token)
+    );
 
-        const result = await prisma.session.update({
-            data: { token: hashedNewToken },
-            where: { token: oldToken }
-        });
-
-        return { success: true, session: result };
-    } catch (error) {
-        console.error("Erro ao atualizar token:", error);
-        throw new Error("Erro ao atualizar o token.");
+    if (!sessionToUpdate) {
+      throw new Error("Sessão não encontrada para atualização.");
     }
+
+    const hashedNewToken = await bcrypt.hash(newToken, SALT_ROUNDS);
+
+    const result = await prisma.session.update({
+      where: { id: sessionToUpdate.id },
+      data: { token: hashedNewToken },
+    });
+
+    return { success: true, session: result };
+  } catch {
+    throw new Error("Erro ao atualizar o token.");
+  }
 };

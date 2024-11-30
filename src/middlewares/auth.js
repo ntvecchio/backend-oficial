@@ -1,53 +1,65 @@
-import jwt from 'jsonwebtoken';
-import { SECRET_KEY } from '../config.js';
-import updateController from './controllers/account/updateController.js';
+import jwt from "jsonwebtoken";
+import { SECRET_KEY } from "../config.js";
+import { getSessionByToken } from "../models/sessionModel.js";
 
-export const auth = (req, res, next) => {
+export const auth = async (req, res, next) => {
+  try {
     const authorization = req.headers.authorization;
-
-    // Verifica se o header Authorization foi enviado
     if (!authorization) {
-        return res.status(403).json({ error: 'Não Autorizado, AccessToken não informado!' });
+      return res.status(403).json({
+        error: "Não autorizado. Cabeçalho Authorization não encontrado!",
+      });
     }
 
-    const accessToken = authorization.split(' ')[1]; // Pega o token após o prefixo "Bearer"
-
-    if (!accessToken) {
-        return res.status(403).json({ error: 'Não Autorizado, Bearer com AccessToken não informado!' });
+    const parts = authorization.split(" ");
+    if (parts.length !== 2 || parts[0] !== "Bearer") {
+      return res.status(403).json({
+        error: "Não autorizado. Formato do token inválido!",
+      });
     }
 
-    try {
-        // Verifica o token e decodifica
-        const result = jwt.verify(accessToken, SECRET_KEY);
-        console.log("Token verificado com sucesso:", result);
+    const accessToken = parts[1];
 
-        // Verifica se o payload contém os campos esperados
-        if (!result.id || !result.public_id || !result.name) {
-            return res.status(400).json({ error: 'Token inválido, faltando dados importantes!' });
-        }
+    const decoded = jwt.verify(accessToken, SECRET_KEY);
 
-        // Definindo o usuário logado no req
-        req.userLogged = {
-            id: result.id,
-            public_id: result.public_id,
-            name: result.name,
-        };
-
-    } catch (error) {
-        console.error("Erro ao verificar token:", error);
-
-        // Erro ao verificar se o token expirou ou é inválido
-        if (error?.name === 'TokenExpiredError') {
-            return res.status(401).json({ error: 'Não Autorizado, AccessToken Expirado!', errorType: 'tokenExpired' });
-        }
-
-        if (error?.name === 'JsonWebTokenError') {
-            return res.status(403).json({ error: 'Não Autorizado, AccessToken Inválido!' });
-        }
-
-        // Caso ocorra outro tipo de erro no processo de verificação
-        return res.status(500).json({ error: 'Erro ao processar o token!' });
+    const session = await getSessionByToken(accessToken);
+    if (!session) {
+      return res.status(403).json({
+        error: "Sessão inválida ou expirada!",
+      });
     }
 
-    next(); // Passa para o próximo middleware ou controller
+    const requiredFields = ["public_id", "name", "email"];
+    const missingFields = requiredFields.filter((field) => !decoded[field]);
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        error: `Token inválido. Campos ausentes: ${missingFields.join(", ")}`,
+      });
+    }
+
+    req.userLogged = {
+      public_id: decoded.public_id,
+      name: decoded.name,
+      email: decoded.email,
+    };
+
+    next();
+  } catch (error) {
+    if (error?.name === "TokenExpiredError") {
+      return res.status(401).json({
+        error: "Não autorizado. AccessToken expirado!",
+        errorType: "tokenExpired",
+      });
+    }
+
+    if (error?.name === "JsonWebTokenError") {
+      return res.status(403).json({
+        error: "Não autorizado. AccessToken inválido!",
+      });
+    }
+
+    return res.status(500).json({
+      error: "Erro interno ao processar o token!",
+    });
+  }
 };

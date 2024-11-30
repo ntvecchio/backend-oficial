@@ -1,6 +1,6 @@
 datasource db {
   provider = "mysql"
-  url      = env("DATABASE_URL") 
+  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -8,41 +8,44 @@ generator client {
 }
 
 model Usuario {
-  id             Int          @id @default(autoincrement()) // Ve se é usuario único
-  nome           String       // Nome do usuário
-  email          String       @unique // Email único para o login
-  telefone       String       // Telefone do usuário
-  senha          String       // A senha dele
-  public_id      String       @unique @default(uuid()) // Campo public_id gerado automaticamente
-  criadoEm       DateTime     @default(now()) // Quando ele criou a conta
-  atualizadoEm   DateTime     @updatedAt // Última alteração da conta
-  modalidades    Modalidade[] @relation("ModalidadesUsuario") // Relacionamento do usuário com as modalidades
-  perfil         PerfilUsuario? // Relacionamento do usuário com o perfil
-  sessions       Session[]    @relation("UserSessions") // Relacionamento do usuário com as sessões
+  id             Int                @id @default(autoincrement())
+  nome           String             @db.VarChar(100)
+  email          String             @unique @db.VarChar(200)
+  telefone       String             @db.VarChar(15)
+  senha          String             @db.VarChar(500)
+  public_id      String             @unique @default(uuid())
+  criadoEm       DateTime           @default(now())
+  atualizadoEm   DateTime           @updatedAt
+  pontosEsportivos PontosEsportivos[] // Relacionamento com pontos esportivos
+  sessions       Session[]          @relation("UserSessions")
 }
 
 model Modalidade {
-  id      Int        @id @default(autoincrement()) // Identificador único da modalidade
-  nome    String     @unique // Nome da modalidade (Vôlei, Basquete, Futebol, Tênis de Mesa)
-  usuarios Usuario[] @relation("ModalidadesUsuario") // Relacionamento do andre  com usuários
+  id             Int                @id @default(autoincrement())
+  nome           String             @unique @db.VarChar(100)
+  urlImage       String             @db.Text
+  incrementKey   Int                @unique
+  pontosEsportivos PontosEsportivos[]
 }
 
-model PerfilUsuario {
-  id         Int     @id @default(autoincrement()) // Identificador único do perfil
-  rua        String  // Rua dele
-  bairro     String  // Bairro dele
-  estado     String  // Estado dele
-  cep        String  // CEP dele
-  usuarioId  Int     @unique // Relacionamento do andre com o usuário
-  usuario    Usuario @relation(fields: [usuarioId], references: [id]) // Relacionamento do andre com a tabela de usuários
+model PontosEsportivos {
+  id             Int                @id @default(autoincrement())
+  endereco       String             @db.VarChar(255)
+  incrementKey   Int                @unique
+  usuarioId      Int
+  usuario        Usuario            @relation(fields: [usuarioId], references: [id])
+  modalidadeId   Int
+  modalidade     Modalidade         @relation(fields: [modalidadeId], references: [id])
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
 }
 
 model Session {
-  id        Int      @id @default(autoincrement()) // Identificador único da sessão
-  token     String   @db.VarChar(500) // Alteração: Definindo como VarChar com tamanho 255
-  createdAt DateTime @default(now()) // Data de criação da sessão
-  userId    Int      // Chave estrangeira para o usuário
-  user      Usuario  @relation("UserSessions", fields: [userId], references: [id]) // Relacionamento do andre com o usuário
+  id         Int                @id @default(autoincrement())
+  token      String             @db.VarChar(500)
+  createdAt  DateTime           @default(now())
+  userId     Int
+  user       Usuario            @relation("UserSessions", fields: [userId], references: [id])
 
-  @@unique([userId, token]) // Garantir que cada usuário tenha apenas um token por vez
+  @@unique([userId, token])
 }

@@ -1,6 +1,5 @@
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
-import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
 
@@ -20,13 +19,10 @@ export const userValidateToCreate = (usuario) => {
   const partialSchema = usuarioSchema.omit({ id: true });
   const validationResult = partialSchema.safeParse(usuario);
 
-  // Verificando se as senhas coincidem
   if (validationResult.success && usuario.senha !== usuario.confirmarSenha) {
     return {
       success: false,
-      error: {
-        message: "As senhas não coincidem.",
-      },
+      error: { message: "As senhas não coincidem." },
     };
   }
 
@@ -35,56 +31,36 @@ export const userValidateToCreate = (usuario) => {
 
 // Função para buscar usuário por ID
 export const getById = async (id) => {
-  return await prisma.usuario.findUnique({
-    where: { id },
-  });
+  try {
+    const user = await prisma.usuario.findUnique({ where: { id } });
+    if (!user) return { success: false, error: "Usuário não encontrado." };
+    return { success: true, data: user };
+  } catch {
+    throw new Error("Erro ao buscar usuário.");
+  }
 };
 
 // Função para buscar usuário por email
 export const getByEmail = async (email) => {
-  console.log("Buscando usuário com email:", email); // Verificar qual email está sendo enviado
   try {
-    // Usar prisma.usuario para acessar o banco de dados
     const user = await prisma.usuario.findUnique({
-      where: { email }, // Verifica pelo campo 'email'
+      where: { email },
     });
-    console.log("Usuário encontrado:", user); // Verificar o que foi retornado
-    return user;
-  } catch (error) {
-    console.error("Erro ao buscar usuário:", error);
-    throw new Error("Erro ao buscar usuário");
+
+    return user || null; // Retorna `null` se o usuário não for encontrado
+  } catch {
+    throw new Error("Erro ao consultar o banco de dados.");
   }
 };
 
 // Função para cadastro do usuário
 export const signUp = async (usuario) => {
   try {
-    // Verificar se o email já está registrado
-    const existingUser = await prisma.usuario.findUnique({
-      where: { email: usuario.email },
-    });
-
-    if (existingUser) {
-      throw new Error("Já existe um usuário com esse email.");
-    }
-
-    // Criptografando a senha
-    const hashedPassword = await bcrypt.hash(usuario.senha, 10);
-
-    // Removendo confirmação de senha para não salvar
-    const sanitizedUser = {
-      ...usuario,
-      senha: hashedPassword,
-      confirmarSenha: undefined, // Não guardar confirmação no banco
-    };
-
-    const result = await prisma.usuario.create({
-      data: sanitizedUser,
-    });
-
-    return { success: true, user: result };
+    const { confirmarSenha, ...sanitizedUser } = usuario;
+    const result = await prisma.usuario.create({ data: sanitizedUser });
+    return result; // Retorna diretamente o usuário criado
   } catch (error) {
-    console.error("Erro ao criar usuário:", error);
+    console.error("Erro ao criar usuário no banco:", error.message);
     throw new Error("Erro ao criar o usuário.");
   }
 };

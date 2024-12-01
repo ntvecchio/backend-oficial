@@ -35,8 +35,34 @@ export const getById = async (id) => {
     const user = await prisma.usuario.findUnique({ where: { id } });
     if (!user) return { success: false, error: "Usuário não encontrado." };
     return { success: true, data: user };
-  } catch {
+  } catch (error) {
+    console.error("Erro ao buscar usuário por ID:", error.message);
     throw new Error("Erro ao buscar usuário.");
+  }
+};
+
+// Função para buscar usuário por public_id
+export const getByPublicId = async (publicId) => {
+  try {
+    const user = await prisma.usuario.findUnique({
+      where: { public_id: publicId },
+    });
+
+    return user || null; // Retorna `null` se o usuário não for encontrado
+  } catch (error) {
+    console.error("Erro ao buscar usuário pelo public_id:", error.message);
+    throw new Error("Erro ao consultar o banco de dados.");
+  }
+};
+
+// Função para verificar se o usuário é administrador
+export const isAdmin = async (publicId) => {
+  try {
+    const user = await getByPublicId(publicId);
+    return user?.isAdmin || false; // Retorna true se o usuário for admin
+  } catch (error) {
+    console.error("Erro ao verificar se o usuário é administrador:", error.message);
+    throw new Error("Erro ao verificar permissões.");
   }
 };
 
@@ -48,7 +74,8 @@ export const getByEmail = async (email) => {
     });
 
     return user || null; // Retorna `null` se o usuário não for encontrado
-  } catch {
+  } catch (error) {
+    console.error("Erro ao consultar o banco de dados:", error.message);
     throw new Error("Erro ao consultar o banco de dados.");
   }
 };
@@ -73,4 +100,14 @@ export const userValidateToLogin = (usuario) => {
   });
 
   return loginSchema.safeParse(usuario);
+};
+
+export default {
+  getById,
+  getByPublicId,
+  isAdmin,
+  getByEmail,
+  signUp,
+  userValidateToCreate,
+  userValidateToLogin,
 };

@@ -4,7 +4,7 @@ import loginController from "../controllers/auth/loginController.js";
 import logoutController from "../controllers/auth/logoutController.js";
 import refreshTokenController from "../controllers/auth/refreshTokenController.js";
 import { getUserInfo } from "../controllers/auth/loginController.js";
-import { auth } from "../middlewares/auth.js";
+import { auth } from "../middlewares/auth.js"; // Corrigido o caminho do middleware
 
 const router = express.Router();
 

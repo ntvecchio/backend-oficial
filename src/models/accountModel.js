@@ -1,6 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import { z } from "zod";
 
+
+
 const prisma = new PrismaClient();
 
 // Schema para criação de contas
@@ -14,6 +16,7 @@ const accountCreateSchema = z.object({
 
 // Schema para atualização de contas
 const accountUpdateSchema = accountCreateSchema.omit({ user_id: true }).partial();
+
 
 export const accountValidateToCreate = (account) => accountCreateSchema.safeParse(account);
 export const accountValidateToUpdate = (account) => accountUpdateSchema.safeParse(account);
@@ -74,34 +77,45 @@ export const deleteAccount = async (id, public_id) => {
     });
 
     if (!account || account.user.public_id !== public_id) {
-      throw new Error("Conta não encontrada ou você não tem permissão para excluir.");
+      return { success: false, message: "Conta não encontrada ou não autorizada para exclusão." };
     }
 
     await prisma.account.delete({ where: { id } });
-    return { success: true, message: "Conta excluída com sucesso." };
-  } catch {
+    return { success: true };
+  } catch (error) {
+    console.error("Erro ao excluir conta:", error.message);
     throw new Error("Erro ao excluir a conta.");
   }
 };
 
 export const update = async (account, public_id) => {
   try {
+    // Verifica se a conta existe e se pertence ao usuário autenticado
     const existingAccount = await prisma.account.findUnique({
       where: { id: account.id },
       include: { user: true },
     });
 
-    if (!existingAccount || existingAccount.user.public_id !== public_id) {
-      throw new Error("Conta não encontrada ou você não tem permissão para atualizar.");
+    if (!existingAccount) {
+      console.warn("Conta não encontrada para o ID:", account.id);
+      throw new Error("Conta não encontrada.");
     }
 
-    const result = await prisma.account.update({
+    if (existingAccount.user.public_id !== public_id) {
+      console.warn("Tentativa de atualização por usuário não autorizado:", public_id);
+      throw new Error("Você não tem permissão para atualizar esta conta.");
+    }
+
+    // Atualiza a conta no banco de dados
+    const updatedAccount = await prisma.account.update({
       where: { id: account.id },
       data: account,
     });
 
-    return { success: true, account: result };
-  } catch {
+    console.log("Conta atualizada com sucesso no banco:", updatedAccount);
+    return updatedAccount; // Retorna diretamente a conta atualizada
+  } catch (error) {
+    console.error("Erro ao atualizar a conta:", error.message);
     throw new Error("Erro ao atualizar a conta.");
   }
 };

@@ -14,6 +14,7 @@ model Usuario {
   telefone       String             @db.VarChar(15)
   senha          String             @db.VarChar(500)
   public_id      String             @unique @default(uuid())
+  isAdmin        Boolean            @default(false)
   criadoEm       DateTime           @default(now())
   atualizadoEm   DateTime           @updatedAt
   pontosEsportivos PontosEsportivos[] // Relacionamento com pontos esportivos

@@ -3,6 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import modalityRouter from "./routes/modalityRouter.js";
 import authRouter from "./routes/authRouter.js";
+import accountRouter from "./routes/accounRouter.js";
 
 dotenv.config();
 
@@ -25,6 +26,11 @@ app.use(express.json());
 // Rotas
 app.use("/modalidades", modalityRouter); // Rotas de modalidades
 app.use("/", authRouter); // Rotas de autenticação
+app.use("/accounts", accountRouter); // Rotas de contas
+
+app.use((req, res) => {
+  res.status(404).json({ error: `Cannot ${req.method} ${req.originalUrl}` });
+});
 
 // Rota de saúde
 app.get("/health", (req, res) => {

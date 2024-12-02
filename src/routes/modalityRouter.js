@@ -1,6 +1,7 @@
-import express from 'express';
-import prisma from '../prisma.js';
-import { auth } from '../middlewares/auth.js';
+import express from "express";
+import prisma from "../prisma.js";
+import { auth } from "../middlewares/auth.js"; // Middleware de autenticação
+import { z } from "zod"; // Importando o Zod para validações
 
 const router = express.Router();
 
@@ -11,108 +12,81 @@ const isAdmin = async (req, res, next) => {
       where: { public_id: req.userLogged.public_id },
     });
 
-    // Verifica se o campo `isAdmin` está definido como `true`
     if (!user) {
       return res.status(404).json({
         success: false,
-        error: 'Usuário não encontrado.',
+        error: "Usuário não encontrado.",
       });
     }
 
     if (!user.isAdmin) {
       return res.status(403).json({
         success: false,
-        error: 'Acesso negado. Apenas administradores podem realizar esta ação.',
+        error: "Acesso negado. Apenas administradores podem realizar esta ação.",
       });
     }
 
     next(); // Passa para o próximo middleware ou controlador
   } catch (error) {
-    console.error('Erro ao verificar permissões do usuário:', error.message);
+    console.error("Erro ao verificar permissões do usuário:", error.message);
     res.status(500).json({
       success: false,
-      error: 'Erro interno ao verificar permissões.',
+      error: "Erro interno ao verificar permissões.",
     });
   }
 };
 
-// Listar todas as modalidades com suporte a paginação
-router.get('/', async (req, res) => {
-  try {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-
-    if (page < 1 || limit < 1) {
-      return res.status(400).json({
-        success: false,
-        error: 'Os parâmetros "page" e "limit" devem ser números positivos maiores que zero.',
-      });
-    }
-
-    const modalidades = await prisma.modalidade.findMany({
-      skip: (page - 1) * limit,
-      take: limit,
-    });
-
-    const total = await prisma.modalidade.count();
-
-    res.json({
-      success: true,
-      total,
-      page,
-      perPage: limit,
-      totalPages: Math.ceil(total / limit),
-      data: modalidades,
-      message: modalidades.length === 0 ? 'Nenhuma modalidade encontrada.' : undefined,
-    });
-  } catch (error) {
-    console.error('Erro ao buscar modalidades:', error.message);
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno ao buscar modalidades. Tente novamente mais tarde.',
-    });
-  }
+// Schema de validação para criação de modalidade
+const modalidadeSchema = z.object({
+  nome: z.string().min(1, "O nome é obrigatório."), // Nome deve ser preenchido
+  urlImage: z.string().url("A URL da imagem deve ser válida."), // URL válida
 });
 
-// Adicionar uma nova modalidade (apenas para administradores)
-router.post('/', auth, isAdmin, async (req, res) => {
-  try {
-    const { nome, urlImage } = req.body;
+// Rota para adicionar uma nova modalidade
+router.post(
+  "/modalidades",
+  auth, // Middleware para autenticação
+  isAdmin, // Middleware para verificar se é admin
+  (req, res, next) => {
+    try {
+      req.body = modalidadeSchema.parse(req.body); // Valida o corpo da requisição
+      next(); // Passa para o próximo middleware/controlador
+    } catch (error) {
+      return res.status(400).json({ errors: error.errors }); // Retorna erros de validação
+    }
+  },
+  async (req, res) => {
+    try {
+      const { nome, urlImage } = req.body;
 
-    if (!nome || !urlImage) {
-      return res.status(400).json({
+      const existingModalidade = await prisma.modalidade.findUnique({
+        where: { nome },
+      });
+
+      if (existingModalidade) {
+        return res.status(400).json({
+          success: false,
+          error: "Já existe uma modalidade com este nome.",
+        });
+      }
+
+      const modalidade = await prisma.modalidade.create({
+        data: { nome, urlImage },
+      });
+
+      res.status(201).json({
+        success: true,
+        message: "Modalidade criada com sucesso!",
+        modalidade,
+      });
+    } catch (error) {
+      console.error("Erro ao criar modalidade:", error.message);
+      res.status(500).json({
         success: false,
-        error: 'Os campos "nome" e "urlImage" são obrigatórios.',
+        error: "Erro interno ao criar modalidade. Tente novamente mais tarde.",
       });
     }
-
-    const existingModalidade = await prisma.modalidade.findUnique({
-      where: { nome },
-    });
-
-    if (existingModalidade) {
-      return res.status(400).json({
-        success: false,
-        error: 'Já existe uma modalidade com este nome.',
-      });
-    }
-
-    const modalidade = await prisma.modalidade.create({
-      data: { nome, urlImage },
-    });
-
-    res.status(201).json({
-      success: true,
-      message: 'Modalidade criada com sucesso!',
-      modalidade,
-    });
-  } catch (error) {
-    console.error('Erro ao criar modalidade:', error.message);
-    res.status(500).json({
-      success: false,
-      error: 'Erro interno ao criar modalidade. Tente novamente mais tarde.',
-    });
   }
-});
+);
 
 export default router;

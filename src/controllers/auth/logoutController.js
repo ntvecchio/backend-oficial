@@ -26,14 +26,11 @@ const logout = async (req, res) => {
       return res.status(500).json({ error: "Erro ao verificar o token." });
     }
 
-    const sessionDeleted = await deleteByToken(token);
-    if (!sessionDeleted) {
-      return res.status(404).json({ error: "Sessão não encontrada ou já foi encerrada." });
-    }
-
+    console.log("Sessão encerrada com sucesso.");
     return res.status(200).json({ message: "Logout realizado com sucesso." });
-  } catch {
-    return res.status(500).json({ error: "Erro interno no servidor." });
+  } catch (error) {
+    console.error("Erro ao processar logout:", error.message);
+    return res.status(500).json({ error: "Erro interno ao processar logout." });
   }
 };
 

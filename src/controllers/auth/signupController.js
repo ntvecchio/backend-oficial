@@ -67,6 +67,7 @@ const signupController = async (req, res) => {
         error: "Erro ao criar o usuário no banco de dados.",
       });
     }
+    console.log("Usuário criado com sucesso:", result);
 
     // Responde com sucesso
     return res.status(201).json({

@@ -7,7 +7,7 @@ const logger = (req, res, next) => {
     console.log(
       `[${new Date().toISOString()}] ${req.method} ${req.originalUrl || req.url} - ${
         res.statusCode
-      } - ${elapsedTime}ms`
+      } - ${elapsedTime}ms - IP: ${req.ip}`
     );
   });
 

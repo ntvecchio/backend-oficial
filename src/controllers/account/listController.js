@@ -1,24 +1,40 @@
-import { listAccounts } from "../../models/accountModel.js";
+import prisma from "../../prisma.js";
 
 const listController = async (req, res) => {
   try {
-    // Recupera o ID público do usuário autenticado
-    const public_id = req.userLogged.public_id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
 
-    // Busca as contas associadas ao usuário
-    const accounts = await listAccounts(public_id);
+    if (page < 1 || limit < 1) {
+      return res.status(400).json({
+        success: false,
+        error: 'Os parâmetros "page" e "limit" devem ser números positivos maiores que zero.',
+      });
+    }
 
-    // Retorna a lista de contas
+    // Busca as modalidades com paginação
+    const modalidades = await prisma.modalidade.findMany({
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    const total = await prisma.modalidade.count();
+
     return res.status(200).json({
       success: true,
-      accounts,
+      total,
+      page,
+      perPage: limit,
+      totalPages: Math.ceil(total / limit),
+      data: modalidades,
     });
   } catch (error) {
-    console.error("Erro ao listar contas:", error.message);
+    console.error("Erro ao listar modalidades:", error.message);
     return res.status(500).json({
-      error: "Erro ao buscar as contas.",
+      error: "Erro ao buscar modalidades.",
     });
   }
 };
 
 export default listController;
+

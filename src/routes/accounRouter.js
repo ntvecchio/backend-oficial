@@ -19,7 +19,21 @@ const validateId = (req, res, next) => {
 // Rotas
 router.get("/", auth, listController); // Listagem de todas as contas
 router.get("/:id", auth, validateId, getByIdController); // Recupera uma conta específica
-router.put("/:id", auth, validateId, updateController); // Atualiza uma conta específica
-router.delete("/delete", auth, removeController);
+router.put(
+  "/:id",
+  auth, // Middleware para autenticação
+  validateId, // Middleware para validar o ID
+  (req, res, next) => {
+    try {
+      req.body = updateSchema.parse(req.body); // Valida o corpo da requisição
+      next(); // Passa para o próximo middleware/controlador
+    } catch (error) {
+      return res.status(400).json({ errors: error.errors }); // Retorna erros de validação
+    }
+  },
+  updateController // Controlador que realiza a atualização
+);// Atualiza uma conta específica
+router.delete("/:id", auth, validateId, removeController);
+
 
 export default router;

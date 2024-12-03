@@ -13,7 +13,7 @@ const validateId = (req, res, next) => {
   if (isNaN(accountId)) {
     return res.status(400).json({ error: "ID da conta inválido." });
   }
-  next();
+  next(); 
 };
 
 // Rotas

@@ -1,37 +1,43 @@
-import { update, accountValidateToUpdate } from "../../models/accountModel.js";
+import prisma from "../../prisma.js";
+import { z } from "zod";
+
+// Validação dos dados de atualização
+const updateSchema = z.object({
+  nome: z.string().min(3).optional(),
+  email: z.string().email().optional(),
+  telefone: z.string().min(10).max(15).optional(),
+});
 
 const updateController = async (req, res) => {
   try {
-    const accountData = req.body; // Dados da conta enviados no body
-    const accountId = parseInt(req.params.id, 10); // ID da conta obtido pela rota
+    const id = parseInt(req.params.id, 10);
 
-    // Valida o ID da conta
-    if (isNaN(accountId)) {
-      return res.status(400).json({ error: "ID da conta inválido." });
-    }
+    // Valida o corpo da requisição
+    const data = updateSchema.parse(req.body);
 
-    // Valida os dados da conta
-    const accountValidated = accountValidateToUpdate(accountData);
-    if (!accountValidated.success) {
+    // Atualiza o usuário no banco
+    const updatedUser = await prisma.usuario.update({
+      where: { id },
+      data,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Usuário atualizado com sucesso!",
+      user: updatedUser,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
       return res.status(400).json({
-        error: "Dados inválidos para atualizar conta.",
-        fieldErrors: accountValidated.error.flatten().fieldErrors,
+        error: "Erro de validação.",
+        details: error.errors,
       });
     }
 
-    // Recupera o public_id do usuário autenticado
-    const public_id = req.userLogged.public_id;
-
-    // Atualiza a conta no banco de dados
-    const updatedAccount = await update({ ...accountData, id: accountId }, public_id);
-
-    if (!updatedAccount) {
-      return res.status(500).json({ error: "Erro ao atualizar conta no banco de dados." });
-    }
-
-    return res.status(200).json({ success: "Conta atualizada!", account: updatedAccount });
-  } catch (error) {
-    return res.status(500).json({ error: "Erro ao processar a solicitação." });
+    console.error("Erro ao atualizar usuário:", error.message);
+    return res.status(500).json({
+      error: "Erro interno ao atualizar usuário.",
+    });
   }
 };
 

@@ -5,6 +5,7 @@ import modalityRouter from "./routes/modalityRouter.js";
 import authRouter from "./routes/authRouter.js";
 import accountRouter from "./routes/accounRouter.js";
 import sportPointRouter from "./routes/sportPointRouter.js";
+import usuarioRouter from "./routes/usuarioRouter.js";
 
 dotenv.config();
 
@@ -24,15 +25,19 @@ app.use(cors(corsOptions));
 // Middlewares globais
 app.use(express.json());
 
+
 // Rotas
 app.use("/modalidades", modalityRouter); // Rotas de modalidades
 app.use("/", authRouter); // Rotas de autenticação
 app.use("/accounts", accountRouter); // Rotas de contas
 app.use("/api/sport-points", sportPointRouter);
+app.use("/usuario", usuarioRouter);
 
 app.use((req, res) => {
   res.status(404).json({ error: `Cannot ${req.method} ${req.originalUrl}` });
 });
+
+
 
 // Rota de saúde
 app.get("/health", (req, res) => {

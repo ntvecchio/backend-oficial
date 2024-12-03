@@ -31,8 +31,12 @@ model Modalidade {
 
 model PontosEsportivos {
   id             Int                @id @default(autoincrement())
-  endereco       String             @db.VarChar(255)
-  incrementKey   Int                @unique
+  endereco       String             @db.VarChar(255) 
+  numero         String             @db.VarChar(10)  
+  bairro         String             @db.VarChar(100) 
+  cidade         String             @db.VarChar(100) 
+  cep            String             @db.VarChar(15)  
+  incrementKey   Int                @unique           // Sem autoincrement
   usuarioId      Int
   usuario        Usuario            @relation(fields: [usuarioId], references: [id])
   modalidadeId   Int

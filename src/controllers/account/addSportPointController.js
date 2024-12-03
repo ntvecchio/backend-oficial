@@ -4,16 +4,23 @@ import { z } from "zod";
 // Validação com Zod
 const sportPointSchema = z.object({
   endereco: z.string().min(5, "O endereço deve ter pelo menos 5 caracteres."),
+  numero: z.string().min(1, "O número é obrigatório."),
+  bairro: z.string().min(3, "O bairro deve ter pelo menos 3 caracteres."),
+  cidade: z.string().min(3, "A cidade deve ter pelo menos 3 caracteres."),
+  cep: z
+    .string()
+    .regex(/^\d{5}-?\d{3}$/, "O CEP deve ter o formato válido (xxxxx-xxx)."),
   usuarioId: z.number().positive("O ID do usuário deve ser um número positivo."),
   modalidadeId: z.number().positive("O ID da modalidade deve ser um número positivo."),
 });
 
 const addSportPointController = async (req, res) => {
   try {
-    // Valida os dados do corpo da requisição
     const validatedData = sportPointSchema.parse(req.body);
 
-    // Chama o model para adicionar o ponto esportivo
+    // Gerar o `incrementKey` automaticamente (ex.: soma do ID do usuário e modalidade)
+    validatedData.incrementKey = validatedData.usuarioId * 1000 + validatedData.modalidadeId;
+
     const result = await addSportPoint(validatedData);
 
     return res.status(201).json({

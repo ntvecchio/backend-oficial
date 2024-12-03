@@ -2,11 +2,21 @@ import prisma from "../../prisma.js";
 import { z } from "zod";
 
 // Validação dos dados de atualização
-const updateSchema = z.object({
-  nome: z.string().min(3).optional(),
-  email: z.string().email().optional(),
-  telefone: z.string().min(10).max(15).optional(),
-});
+const updateSchema = z
+  .object({
+    nome: z.string().min(3).optional(),
+    email: z.string().email().optional(),
+    telefone: z.string().min(10).max(15).optional(),
+    senha: z.string().min(6).max(128).optional(), // Senha deve ter no mínimo 6 caracteres
+    confirmarSenha: z.string().min(6).max(128).optional(),
+  })
+  .refine(
+    (data) => !data.senha || data.senha === data.confirmarSenha, // Garante que 'senha' e 'confirmarSenha' são iguais
+    {
+      message: "As senhas não correspondem.",
+      path: ["confirmarSenha"], // Mensagem de erro para o campo 'confirmarSenha'
+    }
+  );
 
 const updateController = async (req, res) => {
   try {

@@ -18,6 +18,8 @@ const updateSchema = z.object({
   nome: z.string().min(3, "O nome deve ter pelo menos 3 caracteres").optional(),
   email: z.string().email("Email inválido").optional(),
   telefone: z.string().min(10, "Telefone deve ter pelo menos 10 dígitos").optional(),
+  senha: z.string().min(6, "a senha deve ter pelo menos 6 digitos").max(128).optional(), // Senha deve ter no mínimo 6 caracteres
+  confirmarSenha: z.string().min(6).max(128).optional(),
 });
 
 // Rota para atualização do usuário

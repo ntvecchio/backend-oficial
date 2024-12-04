@@ -22,6 +22,7 @@ export const loadUserIdFromToken = (accessToken) => {
 export const auth = async (req, res, next) => {
   try {
     const authorization = req.headers.authorization;
+
     if (!authorization) {
       return res.status(403).json({
         error: "Não autorizado. Cabeçalho Authorization não encontrado!",
@@ -40,19 +41,13 @@ export const auth = async (req, res, next) => {
     // Decodifica e verifica o token JWT
     const decoded = jwt.verify(accessToken, SECRET_KEY);
 
-    if (!decoded) {
-      return res.status(403).json({
-        error: "Não autorizado. Token inválido!",
-      });
-    }
-
     const public_id = decoded.public_id;
 
     // Valida a sessão no banco de dados
     const session = await getSessionByToken(accessToken);
     if (!session) {
       return res.status(403).json({
-        error: "Sessão inválida ou expirada!",
+        error: "Sessão inválida ou expirada! Faça login novamente.",
       });
     }
 
@@ -68,14 +63,14 @@ export const auth = async (req, res, next) => {
   } catch (error) {
     if (error?.name === "TokenExpiredError") {
       return res.status(401).json({
-        error: "Não autorizado. AccessToken expirado!",
+        error: "Não autorizado. Token expirado! Faça login novamente.",
         errorType: "tokenExpired",
       });
     }
 
     if (error?.name === "JsonWebTokenError") {
       return res.status(403).json({
-        error: "Não autorizado. AccessToken inválido!",
+        error: "Não autorizado. Token inválido! Verifique o token fornecido.",
       });
     }
 

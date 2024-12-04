@@ -31,26 +31,26 @@ model Modalidade {
 
 model PontosEsportivos {
   id             Int                @id @default(autoincrement())
-  endereco       String             @db.VarChar(255) 
+  endereco       String             @db.Text     
   numero         String             @db.VarChar(10)  
   bairro         String             @db.VarChar(100) 
   cidade         String             @db.VarChar(100) 
   cep            String             @db.VarChar(15)  
-  incrementKey   Int                @unique           // Sem autoincrement
+  incrementKey   Int                @unique           
   usuarioId      Int
-  usuario        Usuario            @relation(fields: [usuarioId], references: [id])
+  usuario        Usuario            @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   modalidadeId   Int
-  modalidade     Modalidade         @relation(fields: [modalidadeId], references: [id])
+  modalidade     Modalidade         @relation(fields: [modalidadeId], references: [id], onDelete: Restrict) // Usando Restrict
   createdAt      DateTime           @default(now())
   updatedAt      DateTime           @updatedAt
 }
 
-model Session {
-  id         Int                @id @default(autoincrement())
-  token      String             @db.VarChar(500)
-  createdAt  DateTime           @default(now())
-  userId     Int
-  user       Usuario            @relation("UserSessions", fields: [userId], references: [id])
 
-  @@unique([userId, token])
+model Session {
+  id         Int       @id @default(autoincrement())
+  token      String    @db.VarChar(500)
+  createdAt  DateTime  @default(now())
+  userId     Int
+  user       Usuario   @relation("UserSessions", fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, token]) // Garantindo que o usuário tenha no máximo um token por sessão
 }

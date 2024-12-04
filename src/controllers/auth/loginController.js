@@ -7,31 +7,29 @@ import { SECRET_KEY } from "../../config.js";
 const login = async (req, res) => {
   try {
     if (!SECRET_KEY) {
-      console.error("SECRET_KEY não configurada!");
-      return res.status(500).json({ error: "Erro interno no servidor." });
+      return res.status(500).json({
+        error: "SECRET_KEY não configurada! Por favor, configure a chave secreta do JWT.",
+      });
     }
 
     const loginValidated = userValidateToLogin(req.body);
     if (!loginValidated.success) {
       return res.status(400).json({
-        error: "Erro ao logar! Dados de entrada inválidos.",
-        details: loginValidated.error || "Problema nos campos de entrada.",
+        error: "Dados de login inválidos.",
+        details: loginValidated.error.errors || "Problema nos campos de entrada.",
       });
     }
 
     const { email, senha } = loginValidated.data;
-    console.log("Email e senha recebidos:", { email });
-
     const user = await getByEmail(email);
-    console.log("Usuário encontrado:", user);
 
     if (!user) {
-      return res.status(401).json({ error: "Email ou senha inválida!" });
+      return res.status(401).json({ error: "Email não encontrado. Verifique suas credenciais." });
     }
 
     const isPasswordValid = await bcrypt.compare(senha, user.senha);
     if (!isPasswordValid) {
-      return res.status(401).json({ error: "Email ou senha inválida!" });
+      return res.status(401).json({ error: "Senha incorreta. Tente novamente." });
     }
 
     const payload = {
@@ -40,12 +38,10 @@ const login = async (req, res) => {
       email: user.email,
     };
 
-    console.log("Payload gerado para o token JWT:", payload);
-
     const accessToken = jwt.sign(payload, SECRET_KEY, { expiresIn: "1h" });
 
     const sessionCreated = await createSession(user.id, accessToken).catch((err) => {
-      console.error("Erro ao criar sessão:", err);
+      console.error("Erro ao criar sessão:", err.message);
       return null;
     });
 
@@ -53,7 +49,6 @@ const login = async (req, res) => {
       return res.status(500).json({ error: "Erro ao criar sessão no banco de dados." });
     }
 
-    console.log("Login realizado com sucesso:", { user, accessToken });
     return res.status(200).json({
       success: "Login realizado com sucesso!",
       accessToken,
@@ -66,7 +61,7 @@ const login = async (req, res) => {
     });
   } catch (error) {
     console.error("Erro inesperado ao processar o login:", error.message);
-    return res.status(500).json({ error: "Erro ao processar o login." });
+    return res.status(500).json({ error: `Erro ao processar o login: ${error.message}` });
   }
 };
 export const getUserInfo = async (req, res) => {

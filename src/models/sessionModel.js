@@ -42,14 +42,28 @@ export const deleteByToken = async (token) => {
 // Buscar sessão por token
 export const getSessionByToken = async (token) => {
   try {
-    const sessions = await prisma.session.findMany();
-    const matchingSession = sessions.find((session) =>
-      bcrypt.compareSync(token, session.token)
-    );
+    const session = await prisma.session.findUnique({
+      where: { token }, // Busque diretamente pela sessão com base no token
+    });
 
-    return matchingSession || null;
-  } catch {
-    throw new Error("Erro ao buscar a sessão.");
+    return session || null;
+  } catch (error) {
+    console.error("Erro ao buscar a sessão:", error.message);
+    throw new Error("Erro ao buscar sessão.");
+  }
+};
+
+// Buscar sessão por ID de usuário
+export const getSessionByUserId = async (userId) => {
+  try {
+    const session = await prisma.session.findUnique({
+      where: { userId }, // Busca diretamente pelo ID do usuário
+    });
+
+    return session || null;
+  } catch (error) {
+    console.error("Erro ao buscar a sessão por ID de usuário:", error.message);
+    throw new Error("Erro ao buscar sessão pelo ID do usuário.");
   }
 };
 

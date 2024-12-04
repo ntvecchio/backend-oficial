@@ -4,6 +4,8 @@ import getByIdController from "../controllers/account/getByIdController.js";
 import updateController from "../controllers/account/updateController.js";
 import removeController from "../controllers/account/removeController.js";
 import { auth } from "../middlewares/auth.js"; // Adicionado
+import updateSportPointController from "../controllers/account/updateSportPointController.js";
+import deleteSportPointController from "../controllers/account/deleteSportPointController.js";
 
 const router = express.Router();
 
@@ -18,6 +20,7 @@ const validateId = (req, res, next) => {
 
 // Rotas
 router.get("/", auth, listController); // Listagem de todas as contas
+router.put("/sport-point/:id", auth, updateSportPointController);
 router.get("/:id", auth, validateId, getByIdController); // Recupera uma conta específica
 router.put(
   "/:id",
@@ -34,6 +37,7 @@ router.put(
   updateController // Controlador que realiza a atualização
 );// Atualiza uma conta específica
 router.delete("/:id", auth, validateId, removeController);
+router.delete("/sport-point/:id", auth, deleteSportPointController);
 
 
 export default router;

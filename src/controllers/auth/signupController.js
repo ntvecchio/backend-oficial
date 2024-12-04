@@ -33,15 +33,6 @@ const signupController = async (req, res) => {
       });
     }
 
-    // Verifica se as senhas coincidem
-    if (senha !== confirmarSenha) {
-      return res.status(400).json({
-        error: "As senhas não coincidem.",
-        fieldErrors: {
-          confirmarSenha: ["As senhas fornecidas não coincidem."],
-        },
-      });
-    }
 
     // Verifica se o email já existe
     const existingUser = await getByEmail(userData.email);

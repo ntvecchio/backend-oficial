@@ -12,7 +12,7 @@ const adicionarModalidades = async () => {
 
   try {
     for (const modalidade of modalidades) {
-      // Verifica se a modalidade já existe
+      
       const existingModalidade = await prisma.modalidade.findUnique({
         where: { nome: modalidade.nome },
       });

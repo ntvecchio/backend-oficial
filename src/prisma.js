@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient({
-  log: ['query', 'info', 'warn', 'error'], // Logs para depuração
+  log: ['query', 'info', 'warn', 'error'], 
 });
 
 process.on('SIGINT', async () => {

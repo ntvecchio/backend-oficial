@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
-// Adicionar um novo ponto esportivo
+
 export const addSportPoint = async (data) => {
   try {
     const newPoint = await prisma.pontosEsportivos.create({
@@ -21,7 +21,7 @@ export const updateSportPoint = async (id, data) => {
   });
 };
 
-// Deletar um ponto esportivo
+
 export const deleteSportPoint = async (id) => {
   try {
     await prisma.pontosEsportivos.delete({
@@ -48,13 +48,12 @@ export const getSportPointById = async (id) => {
 };
 
 
-// Listar pontos esportivos
 export const listSportPoints = async () => {
   try {
     return await prisma.pontosEsportivos.findMany({
       include: {
-        usuario: true, // Inclui informações do usuário
-        modalidade: true, // Inclui informações da modalidade
+        usuario: true, 
+        modalidade: true, 
       },
     });
   } catch (error) {

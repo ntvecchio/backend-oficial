@@ -1,11 +1,14 @@
 import express from "express";
-import addSportPointController from "../controllers/account/addSportPointController.js"; // Importa o controlador de adição de ponto esportivo
-import { auth } from "../middlewares/auth.js"; // Middleware de autenticação
+import { auth } from "../middlewares/auth.js";
+import addSportPointController from "../controllers/account/addSportPointController.js";
+import deleteSportPointController from "../controllers/account/deleteSportPointController.js";
+import listSportPointsController from "../controllers/account/listSportPointsController.js";
 
 const router = express.Router();
 
-// Adicionar ponto esportivo (rota protegida por autenticação)
-router.post("/", auth, addSportPointController);
 
-// Exporta o roteador
+router.post("/", auth, addSportPointController);
+router.delete("/:id", auth, deleteSportPointController);
+router.get("/", auth, listSportPointsController);
+
 export default router;

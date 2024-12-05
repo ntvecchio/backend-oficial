@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 const prisma = new PrismaClient();
 const SALT_ROUNDS = 10;
 
-// Criar uma nova sessão
+
 export const createSession = async (userId, token) => {
   try {
     const hashedToken = await bcrypt.hash(token, SALT_ROUNDS);
@@ -20,7 +20,7 @@ export const createSession = async (userId, token) => {
   }
 };
 
-// Deletar sessão por token
+
 export const deleteByToken = async (token) => {
   try {
     const sessions = await prisma.session.findMany();
@@ -39,25 +39,18 @@ export const deleteByToken = async (token) => {
   }
 };
 
-// Buscar sessão por token
-export const getSessionByToken = async (token) => {
-  try {
-    const session = await prisma.session.findUnique({
-      where: { token }, // Busque diretamente pela sessão com base no token
-    });
 
-    return session || null;
-  } catch (error) {
-    console.error("Erro ao buscar a sessão:", error.message);
-    throw new Error("Erro ao buscar sessão.");
-  }
+export const getSessionByToken = async (token) => {
+  const sessions = await prisma.session.findMany();
+  const session = sessions.find((s) => bcrypt.compareSync(token, s.token));
+  return session || null;
 };
 
-// Buscar sessão por ID de usuário
+
 export const getSessionByUserId = async (userId) => {
   try {
     const session = await prisma.session.findUnique({
-      where: { userId }, // Busca diretamente pelo ID do usuário
+      where: { userId }, 
     });
 
     return session || null;
@@ -67,7 +60,7 @@ export const getSessionByUserId = async (userId) => {
   }
 };
 
-// Atualizar o token
+
 export const updateToken = async (oldToken, newToken) => {
   try {
     const sessions = await prisma.session.findMany();

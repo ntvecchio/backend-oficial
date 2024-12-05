@@ -34,11 +34,13 @@ const login = async (req, res) => {
 
     const payload = {
       public_id: user.public_id,
+      id: user.id, 
       name: user.nome,
       email: user.email,
     };
-
-    const accessToken = jwt.sign(payload, SECRET_KEY, { expiresIn: "1h" });
+    
+    const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: "1h" });
+    
 
     const sessionCreated = await createSession(user.id, accessToken).catch((err) => {
       console.error("Erro ao criar sessão:", err.message);
@@ -71,7 +73,7 @@ export const getUserInfo = async (req, res) => {
       return res.status(401).json({ error: "Token não fornecido." });
     }
 
-    // Decodifica e verifica o token
+    
     const decoded = jwt.verify(token, SECRET_KEY);
     if (!decoded) {
       return res.status(401).json({ error: "Token inválido ou expirado." });

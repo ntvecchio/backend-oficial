@@ -1,24 +1,24 @@
 import jwt from "jsonwebtoken";
-import { SECRET_KEY } from "../config.js";
+import prisma from "../prisma.js";
 import { getSessionByToken } from "../models/sessionModel.js";
 
-// Função para carregar o public_id do token
+
 export const loadUserIdFromToken = (accessToken) => {
   try {
-    const decoded = jwt.verify(accessToken, SECRET_KEY);
+    const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
 
     if (!decoded.public_id) {
       throw new Error("Token inválido ou malformado. Campo 'public_id' ausente.");
     }
 
-    return decoded.public_id; // Retorna o public_id
+    return decoded.public_id; 
   } catch (error) {
     console.error("Erro ao carregar o public_id do token:", error.message);
     throw error;
   }
 };
 
-// Middleware de autenticação
+
 export const auth = async (req, res, next) => {
   try {
     const authorization = req.headers.authorization;
@@ -37,13 +37,8 @@ export const auth = async (req, res, next) => {
     }
 
     const accessToken = parts[1];
+    const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
 
-    // Decodifica e verifica o token JWT
-    const decoded = jwt.verify(accessToken, SECRET_KEY);
-
-    const public_id = decoded.public_id;
-
-    // Valida a sessão no banco de dados
     const session = await getSessionByToken(accessToken);
     if (!session) {
       return res.status(403).json({
@@ -51,26 +46,26 @@ export const auth = async (req, res, next) => {
       });
     }
 
-    // Adiciona o usuário autenticado ao objeto `req`
     req.userLogged = {
-      public_id,
-      name: session.name || null, // Use o nome da sessão, se necessário
-      email: session.email || null, // Use o email da sessão, se necessário
-      isAdmin: session.isAdmin || false, // Verifica se o usuário é administrador
+      public_id: decoded.public_id,
+      id: decoded.id, 
+      name: session.name || null,
+      email: session.email || null,
+      isAdmin: session.isAdmin || false,
     };
 
-    next(); // Passa para o próximo middleware ou controlador
+    next();
   } catch (error) {
     if (error?.name === "TokenExpiredError") {
       return res.status(401).json({
-        error: "Não autorizado. Token expirado! Faça login novamente.",
+        error: "Token expirado! Faça login novamente.",
         errorType: "tokenExpired",
       });
     }
 
     if (error?.name === "JsonWebTokenError") {
       return res.status(403).json({
-        error: "Não autorizado. Token inválido! Verifique o token fornecido.",
+        error: "Token inválido! Verifique o token fornecido.",
       });
     }
 
@@ -80,20 +75,24 @@ export const auth = async (req, res, next) => {
   }
 };
 
-// Middleware de validação para administradores
-export const isAdmin = (req, res, next) => {
+
+export const isAdmin = async (req, res, next) => {
   try {
-    if (!req.userLogged || !req.userLogged.isAdmin) {
+    const user = await prisma.usuario.findUnique({
+      where: { public_id: req.userLogged.public_id },
+    });
+
+    if (!user || !user.isAdmin) {
       return res.status(403).json({
         error: "Acesso negado. Apenas administradores podem realizar esta ação.",
       });
     }
 
-    next(); // Passa para o próximo middleware ou controlador
+    next();
   } catch (error) {
-    console.error("Erro ao validar permissão de administrador:", error.message);
-    return res.status(500).json({
-      error: "Erro interno ao validar permissão de administrador.",
+    console.error("Erro ao verificar permissões do usuário:", error.message);
+    res.status(500).json({
+      error: "Erro interno ao verificar permissões.",
     });
   }
 };

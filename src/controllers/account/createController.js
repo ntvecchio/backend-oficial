@@ -37,6 +37,7 @@ const createController = async (req, res, next) => {
       account: result,
     });
   } catch (error) {
+    console.error("Erro inesperado ao criar conta:", error);
     return res.status(500).json({
       error: "Erro inesperado ao processar a solicitação.",
     });

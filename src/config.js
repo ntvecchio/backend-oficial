@@ -1,6 +1,6 @@
 import dotenv from "dotenv";
 
-dotenv.config(); // Carrega variáveis de ambiente do arquivo .env
+dotenv.config(); 
 
 export const ENVIRONMENT = process.env.ENVIRONMENT || "development";
 export const PORT = process.env.PORT || 5000;

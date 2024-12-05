@@ -10,12 +10,12 @@ const removeController = async (req, res) => {
   }
 
   try {
-    // Obter o usuário do banco de dados para verificar a integridade antes da exclusão
+    
     const user = await prisma.usuario.findUnique({
       where: { public_id },
       include: {
-        pontosEsportivos: true,  // Incluir dependências
-        sessions: true,          // Incluir sessões ativas
+        pontosEsportivos: true,  
+        sessions: true,       
       },
     });
 
@@ -23,19 +23,16 @@ const removeController = async (req, res) => {
       return res.status(404).json({ error: "Usuário não encontrado." });
     }
 
-    // Iniciar uma transação para deletar as dependências
     const deletedUser = await prisma.$transaction(async (prisma) => {
-      // Excluir sessões ativas do usuário
+    
       await prisma.session.deleteMany({
         where: { userId: user.id },
       });
 
-      // Excluir pontos esportivos associados ao usuário
       await prisma.pontosEsportivos.deleteMany({
         where: { usuarioId: user.id },
       });
 
-      // Agora, excluir o usuário
       return await prisma.usuario.delete({
         where: { public_id },
       });

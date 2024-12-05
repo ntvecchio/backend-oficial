@@ -12,7 +12,7 @@ const listController = async (req, res) => {
       });
     }
 
-    // Busca as modalidades com paginação
+  
     const modalidades = await prisma.modalidade.findMany({
       skip: (page - 1) * limit,
       take: limit,

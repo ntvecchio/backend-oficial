@@ -7,11 +7,11 @@ dotenv.config();
 const prisma = new PrismaClient();
 
 async function createUser(data) {
-  return await prisma.usuario.create({ data }); // Corrigido para "usuario" que corresponde ao schema Prisma
+  return await prisma.usuario.create({ data }); 
 }
 
 async function createSportPoint(data) {
-  return await prisma.pontosEsportivos.create({ data }); // Corrigido para "pontosEsportivos" que corresponde ao schema Prisma
+  return await prisma.pontosEsportivos.create({ data }); 
 }
 
 async function main() {
@@ -19,23 +19,23 @@ async function main() {
     const password = process.env.USER_PASSWORD || 'senha123';
     const email = process.env.USER_EMAIL || 'joao.silva@example.com';
 
-    // Criptografar a senha
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Criar usuário
+   
     const newUser = await createUser({
-      nome: 'João Silva', // Corrigido para "nome"
+      nome: 'João Silva', 
       email,
       telefone: '123456789',
-      senha: hashedPassword, // Corrigido para "senha"
+      senha: hashedPassword, 
     });
     console.log('Usuário criado:', newUser);
 
-    // Criar ponto esportivo
+    
     const sportPoint = await createSportPoint({
-      endereco: 'Rua da Alegria, 100', // Corrigido para "endereco"
-      modalidadeId: 1, // Necessário garantir que a modalidade com ID 1 exista no banco
-      usuarioId: newUser.id, // Relaciona com o ID do usuário recém-criado
+      endereco: 'Rua da Alegria, 100', 
+      modalidadeId: 1, 
+      usuarioId: newUser.id, 
     });
     console.log('Ponto esportivo criado:', sportPoint);
   } catch (error) {

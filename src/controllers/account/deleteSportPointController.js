@@ -4,13 +4,27 @@ const deleteSportPointController = async (req, res) => {
   try {
     const id = parseInt(req.params.id, 10);
 
-    // Verifica se o ponto esportivo existe
+    if (isNaN(id)) {
+      return res.status(400).json({ error: "ID inválido." });
+    }
+
+
     const existingPoint = await getSportPointById(id);
     if (!existingPoint) {
       return res.status(404).json({ error: "Ponto esportivo não encontrado." });
     }
 
-    // Deleta o ponto esportivo
+ 
+    if (
+      req.userLogged.id !== existingPoint.usuarioId &&
+      !req.userLogged.isAdmin
+    ) {
+      return res.status(403).json({
+        error: "Acesso negado. Você não tem permissão para deletar este ponto esportivo.",
+      });
+    }
+
+  
     await deleteSportPoint(id);
 
     return res.status(200).json({

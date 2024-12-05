@@ -1,7 +1,8 @@
 import { addSportPoint } from "../../models/pontosEsportivosModel.js";
+import prisma from "../../prisma.js";
 import { z } from "zod";
 
-// Validação com Zod
+
 const sportPointSchema = z.object({
   endereco: z.string().min(5, "O endereço deve ter pelo menos 5 caracteres."),
   numero: z.string().min(1, "O número é obrigatório."),
@@ -10,23 +11,36 @@ const sportPointSchema = z.object({
   cep: z
     .string()
     .regex(/^\d{5}-?\d{3}$/, "O CEP deve ter o formato válido (xxxxx-xxx)."),
-  usuarioId: z.number().positive("O ID do usuário deve ser um número positivo."),
   modalidadeId: z.number().positive("O ID da modalidade deve ser um número positivo."),
 });
 
 const addSportPointController = async (req, res) => {
   try {
+  
     const validatedData = sportPointSchema.parse(req.body);
 
-    // Gerar o `incrementKey` automaticamente (ex.: soma do ID do usuário e modalidade)
+    
+    validatedData.usuarioId = req.userLogged.id;
+
+  
     validatedData.incrementKey = validatedData.usuarioId * 1000 + validatedData.modalidadeId;
+
+    const modality = await prisma.modalidade.findUnique({
+      where: { id: validatedData.modalidadeId },
+    });
+
+    if (!modality) {
+      return res.status(404).json({
+        error: "Modalidade não encontrada.",
+      });
+    }
 
     const result = await addSportPoint(validatedData);
 
     return res.status(201).json({
       success: true,
       message: "Ponto esportivo adicionado com sucesso!",
-      point: result.point,
+      point: result,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

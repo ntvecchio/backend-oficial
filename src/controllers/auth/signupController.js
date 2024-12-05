@@ -5,12 +5,12 @@ import bcrypt from "bcrypt";
 
 const SALT_ROUNDS = 10;
 
-// Função para gerar o hash da senha
+
 const hashPassword = async (password) => {
   return await bcrypt.hash(password, SALT_ROUNDS);
 };
 
-// Schema de validação do usuário
+
 const userSchema = z.object({
   nome: z.string().min(2, "O nome deve ter no mínimo 2 caracteres."),
   email: z.string().email("O email deve ser válido."),
@@ -22,7 +22,7 @@ const signupController = async (req, res) => {
   try {
     const { senha, confirmarSenha, ...userData } = req.body;
 
-    // Verifica se as senhas foram fornecidas
+ 
     if (!senha || !confirmarSenha) {
       return res.status(400).json({
         error: "Os campos 'senha' e 'confirmarSenha' são obrigatórios.",
@@ -34,7 +34,7 @@ const signupController = async (req, res) => {
     }
 
 
-    // Verifica se o email já existe
+  
     const existingUser = await getByEmail(userData.email);
     if (existingUser) {
       return res.status(400).json({
@@ -42,16 +42,14 @@ const signupController = async (req, res) => {
       });
     }
 
-    // Valida os dados do usuário
     const validatedUser = userSchema.parse({ ...userData, senha });
 
-    // Adiciona o `public_id`
+  
     validatedUser.public_id = uuid();
 
-    // Gera o hash da senha
+   
     validatedUser.senha = await hashPassword(senha);
 
-    // Cria o usuário no banco de dados
     const result = await signUp(validatedUser);
     if (!result) {
       return res.status(500).json({
@@ -60,7 +58,7 @@ const signupController = async (req, res) => {
     }
     console.log("Usuário criado com sucesso:", result);
 
-    // Responde com sucesso
+   
     return res.status(201).json({
       success: "Usuário criado com sucesso!",
       user: {
@@ -71,7 +69,7 @@ const signupController = async (req, res) => {
       },
     });
   } catch (error) {
-    // Trata erros de validação
+
     if (error instanceof z.ZodError) {
       return res.status(400).json({
         error: "Erro ao validar os dados do usuário.",
@@ -81,7 +79,6 @@ const signupController = async (req, res) => {
 
     console.error("Erro inesperado no servidor:", error.message);
 
-    // Trata erros gerais
     return res.status(500).json({
       error: "Erro interno no servidor.",
     });

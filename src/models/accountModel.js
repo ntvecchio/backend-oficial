@@ -90,7 +90,7 @@ export const deleteAccount = async (id, public_id) => {
 
 export const update = async (account, public_id) => {
   try {
-    // Verifica se a conta existe e se pertence ao usuário autenticado
+   
     const existingAccount = await prisma.account.findUnique({
       where: { id: account.id },
       include: { user: true },
@@ -106,14 +106,14 @@ export const update = async (account, public_id) => {
       throw new Error("Você não tem permissão para atualizar esta conta.");
     }
 
-    // Atualiza a conta no banco de dados
+    
     const updatedAccount = await prisma.account.update({
       where: { id: account.id },
       data: account,
     });
 
     console.log("Conta atualizada com sucesso no banco:", updatedAccount);
-    return updatedAccount; // Retorna diretamente a conta atualizada
+    return updatedAccount; 
   } catch (error) {
     console.error("Erro ao atualizar a conta:", error.message);
     throw new Error("Erro ao atualizar a conta.");

@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import modalityRouter from "./routes/modalityRouter.js";
 import authRouter from "./routes/authRouter.js";
-import accountRouter from "./routes/accounRouter.js"; 
+import accountRouter from "./routes/accountRouter.js"; 
 import sportPointRouter from "./routes/sportPointRouter.js";
 import usuarioRouter from "./routes/usuarioRouter.js";
 

@@ -1,25 +1,18 @@
 import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import loginController from "../controllers/auth/loginController.js";
-import logoutController from "../controllers/auth/logoutController.js";
-import { getUserInfo } from "../controllers/auth/loginController.js";
-import { auth } from "../middlewares/auth.js";
 import { PrismaClient } from "@prisma/client";
-import dotenv from "dotenv";
 import { z } from "zod";
-
-const TOKEN_EXPIRATION = "1h";
-const REFRESH_TOKEN_EXPIRATION = "7d";
-
-dotenv.config();
-
-if (!process.env.JWT_SECRET) {
-  throw new Error("JWT_SECRET não está definido no arquivo .env");
-}
 
 const prisma = new PrismaClient();
 const router = express.Router();
+
+const JWT_SECRET = process.env.JWT_SECRET || "default_secret";
+const JWT_EXPIRATION = process.env.JWT_EXPIRATION || "1h"; // Ajustável no ambiente
+
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET não está configurado no ambiente.");
+}
 
 // Validação de entrada com Zod
 const signupSchema = z.object({
@@ -28,6 +21,32 @@ const signupSchema = z.object({
   telefone: z.string().optional(),
   senha: z.string().min(6, "A senha deve ter pelo menos 6 caracteres."),
 });
+
+const validateUserId = (req, res, next) => {
+  const { id } = req.params;
+  const userId = parseInt(id, 10);
+  if (isNaN(userId)) {
+    return res.status(400).json({ error: "ID inválido. Deve ser um número." });
+  }
+  req.userId = userId;
+  next();
+};
+
+// Middleware para autenticação
+const authenticateToken = (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1]; // Formato "Bearer <token>"
+  if (!token) {
+    return res.status(401).json({ error: "Token não fornecido." });
+  }
+
+  jwt.verify(token, JWT_SECRET, (err, user) => {
+    if (err) {
+      return res.status(403).json({ error: "Token inválido ou expirado." });
+    }
+    req.user = user; // Adiciona o usuário decodificado à requisição
+    next();
+  });
+};
 
 // Cadastro
 router.post("/signup", async (req, res) => {
@@ -45,14 +64,21 @@ router.post("/signup", async (req, res) => {
       data: { nome, email, telefone, senha: hashedPassword },
     });
 
-    const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, { expiresIn: TOKEN_EXPIRATION });
-    const refreshToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRATION });
-
-    await prisma.refreshToken.create({
-      data: { token: refreshToken, userId: user.id },
+    // Gera o token JWT após o registro
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
+      expiresIn: JWT_EXPIRATION,
     });
 
-    res.status(201).json({ token, refreshToken });
+    res.status(201).json({
+      success: true,
+      user: {
+        id: user.id,
+        nome: user.nome,
+        email: user.email,
+        telefone: user.telefone,
+      },
+      token,
+    });
   } catch (error) {
     console.error("Erro ao criar usuário:", error);
     if (error.name === "ZodError") {
@@ -63,53 +89,87 @@ router.post("/signup", async (req, res) => {
 });
 
 // Login
-router.post("/login", loginController);
-
-// Renovação de token
-router.post("/refresh-token", async (req, res) => {
-  const { refreshToken } = req.body;
-
-  if (!refreshToken) {
-    return res.status(401).json({ error: "Refresh token não fornecido." });
-  }
-
+router.post("/login", async (req, res) => {
   try {
-    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    const { email, senha } = req.body;
 
-    if (Date.now() / 1000 > decoded.exp) {
-      return res.status(401).json({ error: "Refresh token expirado." });
+    const user = await prisma.usuario.findUnique({ where: { email } });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "Usuário não encontrado!" });
     }
 
-    const storedToken = await prisma.refreshToken.findUnique({ where: { token: refreshToken } });
-    if (!storedToken) {
-      return res.status(403).json({ error: "Refresh token inválido ou expirado." });
+    const isPasswordCorrect = await bcrypt.compare(senha, user.senha);
+    if (!isPasswordCorrect) {
+      return res.status(401).json({ success: false, message: "Senha inválida!" });
     }
 
-    const newToken = jwt.sign({ id: decoded.id }, process.env.JWT_SECRET, { expiresIn: TOKEN_EXPIRATION });
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, {
+      expiresIn: JWT_EXPIRATION,
+    });
 
-    res.status(200).json({ token: newToken });
-  } catch (err) {
-    console.error("Erro ao renovar token:", err);
-    return res.status(403).json({ error: "Refresh token inválido ou expirado." });
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        nome: user.nome,
+        email: user.email,
+        telefone: user.telefone,
+      },
+      token,
+    });
+  } catch (error) {
+    console.error("Erro ao realizar login:", error.message);
+    res.status(500).json({ error: "Erro ao realizar login." });
   }
 });
 
-// Logout
-router.post("/logout", auth, async (req, res) => {
+// Logout (Simples)
+router.post("/logout", authenticateToken, async (req, res) => {
   try {
-    const { authorization } = req.headers;
-    const token = authorization.split(" ")[1];
-
-    await prisma.refreshToken.deleteMany({ where: { token } });
-
+    // No JWT sem armazenamento de sessão, o logout é simbólico.
     res.status(200).json({ message: "Logout realizado com sucesso." });
   } catch (error) {
-    console.error("Erro ao realizar logout:", error);
+    console.error("Erro ao realizar logout:", error.message);
     res.status(500).json({ error: "Erro ao realizar logout." });
   }
 });
 
-// Obter informações do usuário autenticado
-router.get("/getUserInfo", auth, getUserInfo);
+// Obter informações do usuário por ID
+router.get("/info/:id", validateUserId, authenticateToken, async (req, res) => {
+  try {
+    const user = await prisma.usuario.findUnique({
+      where: { id: req.userId },
+      select: { id: true, nome: true, email: true, telefone: true },
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: "Usuário não encontrado." });
+    }
+
+    return res.status(200).json(user);
+  } catch (error) {
+    console.error("Erro ao buscar usuário pelo ID:", error.message);
+    return res.status(500).json({ error: "Erro interno no servidor." });
+  }
+});
+
+// Remover usuário
+router.delete("/delete/:id", validateUserId, authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id; // Valida se o usuário pode excluir apenas a si mesmo
+    if (userId !== req.userId) {
+      return res.status(403).json({ error: "Você não tem permissão para remover este usuário." });
+    }
+
+    await prisma.usuario.delete({
+      where: { id: req.userId },
+    });
+
+    return res.status(200).json({ success: true, message: "Usuário removido com sucesso!" });
+  } catch (error) {
+    console.error("Erro ao remover usuário:", error.message);
+    return res.status(500).json({ error: "Erro ao processar a solicitação." });
+  }
+});
 
 export default router;

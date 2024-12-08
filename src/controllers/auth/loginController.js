@@ -1,88 +1,86 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { userValidateToLogin, getByEmail } from "../../models/userModel.js";
-import { createSession } from "../../models/sessionModel.js";
-import { SECRET_KEY } from "../../config.js";
 
-const JWT_EXPIRATION = "1h"; // Centralização da expiração do token
+const JWT_EXPIRATION = "15m";
+const REFRESH_TOKEN_EXPIRATION = "7d";
+const SECRET_KEY = process.env.JWT_SECRET || "default_secret";
+
+if (!SECRET_KEY) {
+  throw new Error("SECRET_KEY não configurada! Configure a chave secreta do JWT.");
+}
 
 const login = async (req, res) => {
-  try {
-    if (!SECRET_KEY) {
-      return res.status(500).json({
-        error: "SECRET_KEY não configurada! Por favor, configure a chave secreta do JWT.",
-      });
-    }
+  console.log("Iniciando processo de login...");
 
+  try {
     const loginValidated = userValidateToLogin(req.body);
     if (!loginValidated.success) {
+      console.error("Dados de login inválidos:", loginValidated.error.errors);
       return res.status(400).json({
+        success: false,
         error: "Dados de login inválidos.",
-        details: loginValidated.error.errors || "Problema nos campos de entrada.",
+        details: loginValidated.error.errors,
       });
     }
 
     const { email, senha } = loginValidated.data;
+
+    console.log(`Buscando usuário com email: ${email}`);
     const user = await getByEmail(email);
 
     if (!user) {
-      return res.status(401).json({ error: "Email não encontrado. Verifique suas credenciais." });
+      console.error("Usuário não encontrado:", email);
+      return res.status(401).json({
+        success: false,
+        error: "Email não encontrado. Verifique suas credenciais.",
+      });
     }
 
+    console.log("Usuário encontrado. Verificando senha...");
     const isPasswordValid = await bcrypt.compare(senha, user.senha);
     if (!isPasswordValid) {
-      return res.status(401).json({ error: "Senha incorreta. Tente novamente." });
+      console.error("Senha incorreta para o email:", email);
+      return res.status(401).json({
+        success: false,
+        error: "Senha incorreta. Tente novamente.",
+      });
     }
 
+    console.log("Senha válida. Gerando tokens...");
     const payload = {
-      public_id: user.public_id,
       id: user.id,
       name: user.nome,
       email: user.email,
     };
 
     const accessToken = jwt.sign(payload, SECRET_KEY, { expiresIn: JWT_EXPIRATION });
+    const refreshToken = jwt.sign({ id: user.id }, SECRET_KEY, { expiresIn: REFRESH_TOKEN_EXPIRATION });
 
-    const sessionCreated = await createSession(user.id, accessToken);
-    if (!sessionCreated) {
-      return res.status(500).json({ error: "Erro ao criar sessão no banco de dados." });
-    }
-
+    console.log("Tokens gerados com sucesso. Enviando resposta...");
     return res.status(200).json({
-      success: "Login realizado com sucesso!",
-      accessToken,
-      user: {
-        public_id: user.public_id,
-        name: user.nome,
-        avatar: user.avatar || null,
-        email: user.email,
+      success: true,
+      data: {
+        accessToken: token,
+        user: {
+          id: user.id,
+          name: user.nome,
+          email: user.email,
+          telefone: user.telefone,
+        },
       },
     });
+    
+    
+    
   } catch (error) {
     console.error("Erro inesperado ao processar o login:", error.message);
-    return res.status(500).json({ error: `Erro ao processar o login: ${error.message}` });
-  }
-};
-
-export const getUserInfo = async (req, res) => {
-  try {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ error: "Token não fornecido." });
-    }
-
-    const decoded = jwt.verify(token, SECRET_KEY);
-    return res.status(200).json({
-      name: decoded.name,
-      email: decoded.email,
+    return res.status(500).json({
+      success: false,
+      error: `Erro ao processar o login: ${error.message}`,
     });
-  } catch (error) {
-    if (error.name === "TokenExpiredError") {
-      return res.status(401).json({ error: "Token expirado." });
-    }
-
-    console.error("Erro ao verificar o token:", error.message);
-    return res.status(401).json({ error: "Token inválido ou expirado." });
+  } finally {
+    console.log("Processo de login finalizado.");
   }
 };
 

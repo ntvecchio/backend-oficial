@@ -1,56 +1,59 @@
 import jwt from "jsonwebtoken";
-import { SECRET_KEY } from "../../config.js";
-import { getSessionByToken } from "../../models/sessionModel.js";
+import prisma from "../prisma.js";
 
-const refreshTokenController = async (req, res) => {
+const ACCESS_TOKEN_EXPIRATION = "15m"; // Tempo de vida do access token
+const REFRESH_TOKEN_EXPIRATION = "7d"; // Tempo de vida do refresh token
+
+export const refreshAccessToken = async (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(401).json({ error: "Refresh token não fornecido." });
+  }
+
   try {
-    // Verificar cabeçalho de autorização
-    const authorizationHeader = req.headers.authorization;
-    if (!authorizationHeader) {
-      return res.status(400).json({ error: "Cabeçalho de autorização ausente." });
+    // Verifica a validade do refresh token
+    const decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+
+    // Busca o token no banco para validar sua existência
+    const storedToken = await prisma.refreshToken.findUnique({
+      where: { token: refreshToken },
+    });
+
+    if (!storedToken) {
+      return res.status(403).json({ error: "Refresh token não encontrado." });
     }
 
-    const token = authorizationHeader.split(" ")[1];
-    if (!token) {
-      return res.status(400).json({ error: "Token de refresh não fornecido." });
+    if (decoded.id !== storedToken.userId) {
+      return res.status(403).json({ error: "Refresh token inválido para este usuário." });
     }
 
-    // Verificar a sessão correspondente ao token de refresh
-    const session = await getSessionByToken(token);
-    if (!session) {
-      return res.status(401).json({ error: "Token de refresh inválido ou sessão expirada." });
-    }
-
-    // Validar o token de refresh
-    let decoded;
-    try {
-      decoded = jwt.verify(token, SECRET_KEY);
-    } catch (error) {
-      if (error.name === "TokenExpiredError") {
-        return res.status(401).json({ error: "Token de refresh expirado." });
-      }
-      if (error.name === "JsonWebTokenError") {
-        return res.status(401).json({ error: "Token de refresh inválido." });
-      }
-      return res.status(500).json({ error: "Erro ao processar o token de refresh." });
-    }
-
-    // Gerar novo token de acesso
-    const newAccessToken = jwt.sign(
-      {
-        public_id: decoded.public_id,
-        name: decoded.name,
-        email: decoded.email,
-      },
-      SECRET_KEY,
-      { expiresIn: "1h" }
+    // Gera um novo access token
+    const accessToken = jwt.sign(
+      { id: decoded.id, email: decoded.email },
+      process.env.JWT_SECRET,
+      { expiresIn: ACCESS_TOKEN_EXPIRATION }
     );
 
-    return res.status(200).json({ accessToken: newAccessToken });
+    // Atualiza a validade do refresh token no banco, se necessário
+    const updatedRefreshToken = jwt.sign(
+      { id: decoded.id },
+      process.env.JWT_SECRET,
+      { expiresIn: REFRESH_TOKEN_EXPIRATION }
+    );
+
+    await prisma.refreshToken.update({
+      where: { id: storedToken.id },
+      data: { token: updatedRefreshToken },
+    });
+
+    return res.status(200).json({ accessToken, refreshToken: updatedRefreshToken });
   } catch (error) {
-    console.error("Erro interno ao renovar token de acesso:", error.message);
-    return res.status(500).json({ error: "Erro interno ao renovar o token de acesso." });
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({ error: "Refresh token expirado." });
+    }
+
+    console.error("Erro ao renovar token:", error.message);
+    return res.status(403).json({ error: "Refresh token inválido ou expirado." });
   }
 };
-
-export default refreshTokenController;

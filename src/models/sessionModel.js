@@ -1,15 +1,12 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcrypt";
 
 const prisma = new PrismaClient();
-const SALT_ROUNDS = 10;
 
 // Criar sessão
-export const createSession = async (userId, token) => {
+export const createSession = async (userId, sessionInfo) => {
   try {
-    const hashedToken = await bcrypt.hash(token, SALT_ROUNDS);
     const result = await prisma.session.create({
-      data: { userId, token: hashedToken },
+      data: { userId, info: sessionInfo }, // Salva informações adicionais na sessão
     });
     return { success: true, session: result };
   } catch (error) {
@@ -18,12 +15,13 @@ export const createSession = async (userId, token) => {
   }
 };
 
-// Excluir sessão por token
-export const deleteByToken = async (token) => {
+// Excluir sessão por ID de usuário
+export const deleteSessionByUserId = async (userId) => {
   try {
     const session = await prisma.session.findFirst({
-      where: { token }, // Use uma coluna auxiliar para buscar rapidamente
+      where: { userId },
     });
+
     if (!session) return false;
 
     await prisma.session.delete({ where: { id: session.id } });
@@ -34,52 +32,38 @@ export const deleteByToken = async (token) => {
   }
 };
 
-// Buscar sessão por token
-export const getSessionByToken = async (token) => {
-  try {
-    const session = await prisma.session.findFirst({
-      where: { token }, // Use uma coluna auxiliar para buscas rápidas
-    });
-    return session || null;
-  } catch (error) {
-    console.error("Erro ao buscar sessão por token:", error.message);
-    throw new Error("Erro ao buscar sessão.");
-  }
-};
-
 // Buscar sessão por ID de usuário
 export const getSessionByUserId = async (userId) => {
   try {
-    const session = await prisma.session.findUnique({
+    const session = await prisma.session.findFirst({
       where: { userId },
     });
     return session || null;
   } catch (error) {
-    console.error("Erro ao buscar a sessão por ID de usuário:", error.message);
+    console.error("Erro ao buscar sessão por ID de usuário:", error.message);
     throw new Error("Erro ao buscar sessão pelo ID do usuário.");
   }
 };
 
-// Atualizar token
-export const updateToken = async (oldToken, newToken) => {
+// Atualizar sessão com novas informações
+export const updateSession = async (userId, newInfo) => {
   try {
     const session = await prisma.session.findFirst({
-      where: { token: oldToken }, // Use uma coluna auxiliar para buscas rápidas
+      where: { userId },
     });
 
     if (!session) {
       throw new Error("Sessão não encontrada para atualização.");
     }
 
-    const hashedNewToken = await bcrypt.hash(newToken, SALT_ROUNDS);
     const result = await prisma.session.update({
       where: { id: session.id },
-      data: { token: hashedNewToken },
+      data: { info: newInfo },
     });
 
     return { success: true, session: result };
   } catch (error) {
-    console.error("Erro ao atualizar token:", error.message);
-    throw new Error("Erro ao atualizar o token.");
+    console.error("Erro ao atualizar sessão:", error.message);
+    throw new Error("Erro ao atualizar a sessão.");
   }
 };

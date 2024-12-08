@@ -3,19 +3,19 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 const removeController = async (req, res) => {
-  const public_id = req.userLogged?.public_id;
+  const userId = req.userLogged?.id; // Pega o `id` do usuário autenticado
 
-  if (!public_id) {
+  if (!userId) {
     return res.status(401).json({ error: "Usuário não autenticado." });
   }
 
   try {
-    
+    // Busca o usuário no banco de dados
     const user = await prisma.usuario.findUnique({
-      where: { public_id },
+      where: { id: userId },
       include: {
-        pontosEsportivos: true,  
-        sessions: true,       
+        pontosEsportivos: true, // Inclui os pontos esportivos relacionados
+        sessions: true,         // Inclui as sessões relacionadas
       },
     });
 
@@ -23,18 +23,21 @@ const removeController = async (req, res) => {
       return res.status(404).json({ error: "Usuário não encontrado." });
     }
 
-    const deletedUser = await prisma.$transaction(async (prisma) => {
-    
+    // Executa as exclusões em uma transação
+    await prisma.$transaction(async (prisma) => {
+      // Exclui todas as sessões relacionadas
       await prisma.session.deleteMany({
         where: { userId: user.id },
       });
 
+      // Exclui todos os pontos esportivos relacionados
       await prisma.pontosEsportivos.deleteMany({
         where: { usuarioId: user.id },
       });
 
-      return await prisma.usuario.delete({
-        where: { public_id },
+      // Exclui o próprio usuário
+      await prisma.usuario.delete({
+        where: { id: userId },
       });
     });
 
@@ -46,6 +49,5 @@ const removeController = async (req, res) => {
     });
   }
 };
-
 
 export default removeController;

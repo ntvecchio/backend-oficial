@@ -1,33 +1,16 @@
-import { deleteByToken } from "../../models/sessionModel.js";
-import jwt from "jsonwebtoken";
-import { SECRET_KEY } from "../../config.js";
+import { deleteSessionByUserId } from "../../models/sessionModel.js";
 
 const logout = async (req, res) => {
   try {
-    const authorizationHeader = req.headers.authorization;
-    if (!authorizationHeader) {
-      return res.status(400).json({ error: "Cabeçalho de autorização ausente." });
+    // Recupera o ID do usuário do cabeçalho ou do corpo da requisição
+    const userId = req.headers["user-id"] || req.body.userId;
+
+    if (!userId) {
+      return res.status(400).json({ error: "ID do usuário não fornecido." });
     }
 
-    const token = authorizationHeader.split(" ")[1];
-    if (!token) {
-      return res.status(400).json({ error: "Token não fornecido." });
-    }
-
-    try {
-      jwt.verify(token, SECRET_KEY);
-    } catch (error) {
-      if (error.name === "JsonWebTokenError") {
-        return res.status(401).json({ error: "Token inválido." });
-      }
-      if (error.name === "TokenExpiredError") {
-        return res.status(401).json({ error: "Token expirado." });
-      }
-      return res.status(500).json({ error: "Erro ao verificar o token." });
-    }
-
-    // Remover a sessão associada ao token
-    const sessionDeleted = await deleteByToken(token);
+    // Remove a sessão associada ao ID do usuário
+    const sessionDeleted = await deleteSessionByUserId(userId);
     if (!sessionDeleted) {
       return res.status(400).json({ error: "Sessão não encontrada ou já encerrada." });
     }

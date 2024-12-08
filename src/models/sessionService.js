@@ -1,36 +1,26 @@
-import jwt from "jsonwebtoken";
-import bcrypt from "bcrypt";
-import { SECRET_KEY } from "../config.js";
-import { getSessionByToken, createSession, deleteByToken } from "../models/sessionModel.js";
+import { createSession, deleteByToken, getSessionByToken } from "../models/sessionModel.js";
 
-const TOKEN_EXPIRATION = "1h"; // Centralização da expiração do JWT
-
-// Gerar um token de acesso JWT
-export const generateAccessToken = (user) => {
-  const payload = {
-    public_id: user.public_id,
-    name: user.nome,
-    email: user.email,
-  };
-  return jwt.sign(payload, SECRET_KEY, { expiresIn: TOKEN_EXPIRATION });
-};
-
-// Criar uma nova sessão para o usuário
-export const createUserSession = async (userId, token) => {
+// Criar uma nova sessão (salvar informações no banco)
+export const createUserSession = async (userId, sessionInfo) => {
   try {
-    const hashedToken = await bcrypt.hash(token, 10);
-    return await createSession(userId, hashedToken);
+    const session = await createSession(userId, sessionInfo);
+    if (!session.success) {
+      throw new Error("Erro ao criar sessão no banco de dados.");
+    }
+    return session.session;
   } catch (error) {
     console.error("Erro ao criar sessão:", error.message);
     throw new Error("Erro ao criar sessão.");
   }
 };
 
-// Validar uma sessão existente
-export const validateSession = async (token) => {
+// Validar uma sessão (verificar informações de sessão no banco de dados)
+export const validateSession = async (sessionId) => {
   try {
-    const session = await getSessionByToken(token);
-    if (!session) throw new Error("Sessão inválida ou expirada.");
+    const session = await getSessionByToken(sessionId);
+    if (!session) {
+      throw new Error("Sessão inválida ou expirada.");
+    }
     return session;
   } catch (error) {
     console.error("Erro ao validar sessão:", error.message);
@@ -38,11 +28,13 @@ export const validateSession = async (token) => {
   }
 };
 
-// Excluir uma sessão
-export const destroySession = async (token) => {
+// Excluir uma sessão (remover sessão do banco de dados)
+export const destroySession = async (sessionId) => {
   try {
-    const sessionDeleted = await deleteByToken(token);
-    if (!sessionDeleted) throw new Error("Erro ao excluir a sessão.");
+    const sessionDeleted = await deleteByToken(sessionId);
+    if (!sessionDeleted) {
+      throw new Error("Sessão não encontrada ou já excluída.");
+    }
     return true;
   } catch (error) {
     console.error("Erro ao excluir sessão:", error.message);

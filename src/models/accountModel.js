@@ -5,8 +5,8 @@ const prisma = new PrismaClient();
 
 // Schema para criação de contas
 const accountCreateSchema = z.object({
-  service: z.string().min(1).max(255, "O nome do serviço deve ter no máximo 255 caracteres."),
-  username: z.string().min(3, "O nome de usuário deve ter pelo menos 3 caracteres.").max(255),
+  service: z.string().min(1, "O nome do serviço é obrigatório.").max(255, "Máximo de 255 caracteres."),
+  username: z.string().min(3, "O nome de usuário deve ter ao menos 3 caracteres.").max(255),
   logo_image: z.string().url("Deve ser uma URL válida.").max(1000).optional(),
   pass: z.string().min(6, "A senha deve ter no mínimo 6 caracteres.").max(500),
   user_id: z.number().positive("O ID do usuário deve ser um número positivo."),
@@ -20,11 +20,11 @@ export const accountValidateToCreate = (account) => accountCreateSchema.safePars
 export const accountValidateToUpdate = (account) => accountUpdateSchema.safeParse(account);
 
 // Listar contas do usuário
-export const listAccounts = async (public_id) => {
+export const listAccounts = async (user_id) => {
   try {
     return await prisma.account.findMany({
       orderBy: { id: "desc" },
-      where: { user: { public_id } },
+      where: { user_id },
     });
   } catch (error) {
     console.error("Erro ao buscar contas:", error.message);
@@ -33,15 +33,14 @@ export const listAccounts = async (public_id) => {
 };
 
 // Buscar conta por ID
-export const getByIdAccount = async (id, public_id) => {
+export const getByIdAccount = async (id, user_id) => {
   try {
     const account = await prisma.account.findUnique({
       where: { id },
-      include: { user: true },
     });
 
-    if (!account || account.user.public_id !== public_id) {
-      throw new Error("Conta não encontrada ou você não tem permissão para visualizá-la.");
+    if (!account || account.user_id !== user_id) {
+      throw new Error("Conta não encontrada ou não autorizada.");
     }
 
     return account;
@@ -64,7 +63,7 @@ export const create = async (account) => {
     });
 
     if (existingAccount) {
-      throw new Error("Já existe uma conta com esse serviço para este usuário.");
+      throw new Error("Já existe uma conta com este serviço para este usuário.");
     }
 
     const result = await prisma.account.create({
@@ -79,7 +78,7 @@ export const create = async (account) => {
 };
 
 // Atualizar conta
-export const update = async (account, public_id) => {
+export const update = async (account, user_id) => {
   try {
     const validationResult = accountValidateToUpdate(account);
     if (!validationResult.success) {
@@ -88,14 +87,13 @@ export const update = async (account, public_id) => {
 
     const existingAccount = await prisma.account.findUnique({
       where: { id: account.id },
-      include: { user: true },
     });
 
     if (!existingAccount) {
       throw new Error("Conta não encontrada.");
     }
 
-    if (existingAccount.user.public_id !== public_id) {
+    if (existingAccount.user_id !== user_id) {
       throw new Error("Você não tem permissão para atualizar esta conta.");
     }
 
@@ -110,15 +108,14 @@ export const update = async (account, public_id) => {
 };
 
 // Excluir conta
-export const deleteAccount = async (id, public_id) => {
+export const deleteAccount = async (id, user_id) => {
   try {
     const account = await prisma.account.findUnique({
       where: { id },
-      include: { user: true },
     });
 
-    if (!account || account.user.public_id !== public_id) {
-      return { success: false, message: "Conta não encontrada ou não autorizada para exclusão." };
+    if (!account || account.user_id !== user_id) {
+      return { success: false, message: "Conta não encontrada ou não autorizada." };
     }
 
     await prisma.account.delete({ where: { id } });

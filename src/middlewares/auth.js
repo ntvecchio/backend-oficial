@@ -13,6 +13,8 @@ export const auth = async (req, res, next) => {
       return res.status(403).json({ error: "Acesso negado! Token não fornecido." });
     }
 
+
+  
     // Verifica o token
     jwt.verify(token, SECRET_KEY, async (err, decoded) => {
       if (err) {
@@ -87,3 +89,7 @@ export const isAdmin = (req, res, next) => {
     return res.status(500).json({ error: "Erro interno ao verificar permissões." });
   }
 };
+ 
+
+
+

@@ -1,3 +1,5 @@
+
+
 import express from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -115,7 +117,7 @@ router.post("/login", async (req, res) => {
         email: user.email,
         telefone: user.telefone,
       },
-      token,
+      accessToken: token, // Alterar para manter o padrão do frontend
     });
   } catch (error) {
     console.error("Erro ao realizar login:", error.message);
@@ -135,10 +137,12 @@ router.post("/logout", authenticateToken, async (req, res) => {
 });
 
 // Obter informações do usuário por ID
-router.get("/info/:id", validateUserId, authenticateToken, async (req, res) => {
+router.get("/info/:id", async (req, res) => {
   try {
+    const { id } = req.params; // Pegando o ID diretamente da URL
+
     const user = await prisma.usuario.findUnique({
-      where: { id: req.userId },
+      where: { id: parseInt(id) },  // Certifique-se de que o id é um número
       select: { id: true, nome: true, email: true, telefone: true },
     });
 
@@ -148,11 +152,10 @@ router.get("/info/:id", validateUserId, authenticateToken, async (req, res) => {
 
     return res.status(200).json(user);
   } catch (error) {
-    console.error("Erro ao buscar usuário pelo ID:", error.message);
+    console.error("Erro ao buscar informações do usuário:", error.message);
     return res.status(500).json({ error: "Erro interno no servidor." });
   }
 });
-
 // Remover usuário
 router.delete("/delete/:id", validateUserId, authenticateToken, async (req, res) => {
   try {
@@ -171,5 +174,30 @@ router.delete("/delete/:id", validateUserId, authenticateToken, async (req, res)
     return res.status(500).json({ error: "Erro ao processar a solicitação." });
   }
 });
+
+
+router.post('/create', async (req, res) => {
+  try {
+    const hashedPassword = await bcrypt.hash('senha_secreta', 10);  // Substitua a senha por uma desejada
+
+    const admin = await prisma.usuario.create({
+      data: {
+        nome: 'Administrador',
+        email: 'admin@exemplo.com',
+        senha: hashedPassword,
+        telefone: '123456789',
+        isAdmin: true,  // Marcando como admin
+      },
+    });
+
+    return res.status(201).json({ success: 'Admin criado com sucesso!', user: admin });
+  } catch (error) {
+    console.error('Erro ao criar admin:', error);
+    return res.status(500).json({ error: 'Erro ao criar admin.' });
+  }
+});
+
+
+
 
 export default router;

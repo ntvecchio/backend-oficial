@@ -61,7 +61,7 @@ const login = async (req, res) => {
     return res.status(200).json({
       success: true,
       data: {
-        accessToken: token,
+        accessToken:  accessToken,
         user: {
           id: user.id,
           name: user.nome,

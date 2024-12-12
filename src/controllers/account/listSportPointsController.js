@@ -1,24 +1,17 @@
 import prisma from "../../prisma.js";
 
-
 const listSportPointsController = async (req, res) => {
   try {
-    const { isAdmin, id: userId } = req.userLogged;
-
-    
-    const filter = isAdmin ? {} : { usuarioId: userId };
-
     const sportPoints = await prisma.pontosEsportivos.findMany({
-      where: filter,
       include: {
         usuario: {
-          select: { nome: true, email: true }, 
+          select: { nome: true, email: true },
         },
         modalidade: {
           select: { nome: true, urlImage: true },
         },
       },
-      orderBy: { createdAt: "desc" }, 
+      orderBy: { createdAt: "desc" },
     });
 
     if (sportPoints.length === 0) {

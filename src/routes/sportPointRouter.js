@@ -27,13 +27,14 @@ const sportPointSchema = z.object({
   modalidadeId: z.number().positive("O ID da modalidade deve ser um número positivo."),
 });
 
-// Rota para criar um novo ponto esportivo
+// Rota para criar um novo ponto esportivo  
 router.post(
   "/",
-  auth,
+  auth, // Adiciona o middleware de autenticação
   (req, res, next) => {
     try {
       req.body = sportPointSchema.parse(req.body);
+      req.body.usuarioId = req.userLogged.id; // Adiciona o ID do usuário autenticado ao corpo
       next();
     } catch (error) {
       return res.status(400).json({ success: false, errors: error.errors });
@@ -43,9 +44,9 @@ router.post(
 );
 
 // Rota para deletar um ponto esportivo
-router.delete("/:id", auth, validateId, deleteSportPointController);
+router.delete("/:id",  validateId, deleteSportPointController);
 
 // Rota para listar todos os pontos esportivos
-router.get("/", auth, listSportPointsController);
+router.get("/", listSportPointsController);
 
 export default router;

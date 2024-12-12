@@ -4,23 +4,36 @@ import { z } from "zod";
 const prisma = new PrismaClient();
 
 // Validação de entrada com Zod
-const sportPointSchema = z.object({
+export const sportPointSchema = z.object({
   endereco: z.string().min(5, "O endereço deve ter pelo menos 5 caracteres."),
+  numero: z.string().min(1, "O número é obrigatório."),
+  bairro: z.string().min(3, "O bairro deve ter pelo menos 3 caracteres."),
+  cidade: z.string().min(3, "A cidade deve ter pelo menos 3 caracteres."),
+  cep: z
+    .string()
+    .regex(/^\d{5}-?\d{3}$/, "O CEP deve ter o formato válido (xxxxx-xxx)."),
   modalidadeId: z.number().positive("O ID da modalidade deve ser um número positivo."),
-  usuarioId: z.number().positive("O ID do usuário deve ser um número positivo."),
+  usuarioId: z.number().positive("O ID do usuário é obrigatório e deve ser um número positivo."),
 });
 
 // Adicionar ponto esportivo
 export const addSportPoint = async (data) => {
   try {
-    // Validar entrada
-    const validatedData = sportPointSchema.parse(data);
+    console.log("Dados recebidos na requisição:", data); // Log inicial
+    const validatedData = sportPointSchema.parse(data); // Validação
+    console.log("Dados validados:", validatedData); // Log após validação
 
     const newPoint = await prisma.pontosEsportivos.create({
       data: validatedData,
     });
+
     return { success: true, point: newPoint };
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      console.error("Erro de validação detalhado:", error.errors);
+      throw new Error("Erro de validação: " + JSON.stringify(error.errors));
+    }
+
     console.error("Erro ao adicionar ponto esportivo:", error.message);
     throw new Error("Erro ao criar ponto esportivo.");
   }

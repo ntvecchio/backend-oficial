@@ -7,39 +7,28 @@ const SECRET_KEY = process.env.JWT_SECRET || "default_secret";
 // Middleware de autenticação baseado em JWT
 export const auth = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1]; // Exemplo: "Bearer <token>"
+    const { usuarioId } = req.body;
 
-    if (!token) {
-      return res.status(403).json({ error: "Acesso negado! Token não fornecido." });
+    if (!usuarioId) {
+      return res.status(403).json({ error: "Usuário não autenticado." });
     }
 
-
-  
-    // Verifica o token
-    jwt.verify(token, SECRET_KEY, async (err, decoded) => {
-      if (err) {
-        return res.status(403).json({ error: "Token inválido ou expirado." });
-      }
-
-      // Busca o usuário no banco de dados pelo ID decodificado
-      const user = await prisma.usuario.findUnique({
-        where: { id: decoded.id },
-      });
-
-      if (!user) {
-        return res.status(404).json({ error: "Usuário não encontrado." });
-      }
-
-      // Adiciona os dados do usuário ao objeto da requisição
-      req.userLogged = {
-        id: user.id,
-        nome: user.nome,
-        email: user.email,
-        isAdmin: user.isAdmin,
-      };
-
-      next(); // Continua para o próximo middleware ou controlador
+    const user = await prisma.usuario.findUnique({
+      where: { id: usuarioId },
     });
+
+    if (!user) {
+      return res.status(404).json({ error: "Usuário não encontrado." });
+    }
+
+    req.userLogged = {
+      id: user.id,
+      nome: user.nome,
+      email: user.email,
+      isAdmin: user.isAdmin,
+    };
+
+    next();
   } catch (error) {
     console.error("Erro ao autenticar usuário:", error.message);
     return res.status(500).json({ error: "Erro interno ao autenticar usuário." });
